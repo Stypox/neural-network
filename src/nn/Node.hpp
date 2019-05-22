@@ -22,6 +22,8 @@ class Node {
 
 	// things for the network
 	flt_t m_sumInputs;
+	std::vector<flt_t> m_weightDerivatives;
+	flt_t m_derivativeSoFar;
 public:
 	Node(size_t outputCount);
 	Node(std::vector<flt_t> weights);
