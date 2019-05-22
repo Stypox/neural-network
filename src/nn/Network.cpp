@@ -28,22 +28,22 @@ void Network::updateOutputs(const std::vector<flt_t>& inputs) {
 		updateLayer(i);
 }
 
-flt_t Network::outputDistance(const std::vector<flt_t>& expectedOutputs) {
+flt_t Network::performance(const std::vector<flt_t>& expectedOutputs) {
 	flt_t squaresSum = 0;
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
 		squaresSum += std::pow(m_nodes.back()[y].m_value-expectedOutputs[y], 2);
 	}
 
-	return std::sqrt(squaresSum);
+	return squaresSum;
 }
 
-flt_t Network::outputDistanceDerivative(const flt_t outputMultiplier, const std::vector<flt_t>& outputDeltas) {
+flt_t Network::performanceDerivative(const std::vector<flt_t>& outputDeltas) {
 	/*
-	  dD                                                                                      dO
-	  --  =  (outputMultiplier=1/outputDistance)  *  accumulateForEveryO( outputDeltas[O]  *  -- )
-	  dx                                                                                      dx
+	  dP                                              dO
+	  --  =  accumulateForEveryO( outputDeltas[O]  *  -- )
+	  dx                                              dx
 
-	  D is the distance and O is any output node
+	  D is the performance and O is any output node
 	*/
 
 	flt_t accumulated = 0;
@@ -51,9 +51,9 @@ flt_t Network::outputDistanceDerivative(const flt_t outputMultiplier, const std:
 		accumulated += outputDeltas[y] * m_nodes.back()[y].m_derivativeSoFar;
 	}
 
-	return outputMultiplier * accumulated;
+	return accumulated;
 }
-flt_t Network::getDerivative(const size_t nodeAx, const size_t nodeAy, const size_t nodeBy, const flt_t outputMultiplier, const std::vector<flt_t>& outputDeltas) {
+flt_t Network::getDerivative(const size_t nodeAx, const size_t nodeAy, const size_t nodeBy, const std::vector<flt_t>& outputDeltas) {
 	size_t nodeBx = nodeAx+1;
 	for(size_t y = 0; y != m_nodes[nodeBx].size(); ++y) {
 		m_nodes[nodeBx][y].m_derivativeSoFar = 0;
@@ -79,14 +79,14 @@ flt_t Network::getDerivative(const size_t nodeAx, const size_t nodeAy, const siz
 		}
 	}
 
-	return outputDistanceDerivative(outputMultiplier, outputDeltas);
+	return performanceDerivative(outputDeltas);
 }
 
-void Network::genDerivativesForAllWeights(const flt_t outputMultiplier, const std::vector<flt_t>& outputDeltas) {
+void Network::genDerivativesForAllWeights(const std::vector<flt_t>& outputDeltas) {
 	for(size_t x = 0; x != m_nodes.size()-1; ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
 			for(size_t yTo = 0; yTo != m_nodes[x+1].size(); ++yTo) {
-				m_nodes[x][y].m_weightDerivatives[yTo] = getDerivative(x, y, yTo, outputMultiplier, outputDeltas);
+				m_nodes[x][y].m_weightDerivatives[yTo] = getDerivative(x, y, yTo, outputDeltas);
 			}
 		}
 	}
@@ -126,7 +126,7 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	return result;
 }
 
-flt_t Network::train(const std::vector<flt_t>& inputs, const std::vector<flt_t>& expectedOutputs) {
+void Network::train(const std::vector<flt_t>& inputs, const std::vector<flt_t>& expectedOutputs) {
 	updateOutputs(inputs);
 
 	std::vector<flt_t> outputDeltas;
@@ -134,17 +134,8 @@ flt_t Network::train(const std::vector<flt_t>& inputs, const std::vector<flt_t>&
 		outputDeltas.push_back(m_nodes.back()[y].m_value - expectedOutputs[y]);
 	}
 
-	flt_t originalDistance = std::sqrt(std::accumulate(outputDeltas.begin(), outputDeltas.end(), 0.0, [](flt_t s, flt_t d) {
-			return s + d*d;
-		}));
-	flt_t outputMultiplier = 1 / originalDistance;
-
-
-	genDerivativesForAllWeights(outputMultiplier, outputDeltas);
+	genDerivativesForAllWeights(outputDeltas);
 	applyDerivativesToAllWeights(100,0.005);
-
-
-	return originalDistance;
 }
 
 } /* namespace nn */

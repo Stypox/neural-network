@@ -3,26 +3,32 @@
 #include <iomanip>
 
 int main() {
-	nn::Network net{5,2,3};
+	nn::Network net{5,5,4};
 
 	std::cout << std::fixed << std::setprecision(1);
 
-	std::vector<nn::flt_t> gIn{1.,1.,1.,1.,1.}, gOut{1.,0.,0.},
-	                       cIn{0.,0.,1.,1.,1.}, cOut{0.,1.,0.},
-	                       fIn{0.,0.,0.,0.,1.}, fOut{0.,0.,1.};
-	deb("Before training:");
-	deb("Giraffe", net.calculate(gIn), "-", gOut);
-	deb("Goat   ", net.calculate(cIn), "-", cOut);
-	deb("Ant    ", net.calculate(fIn), "-", fOut);
+	std::vector<nn::flt_t>
+		giIn{1.,1.,0.,0.,1.}, giOut{1.,0.,0.,0.},
+		elIn{1.,1.,1.,1.,1.}, elOut{0.,1.,0.,0.},
+		goIn{0.,0.,1.,1.,1.}, goOut{0.,0.,1.,0.},
+		anIn{0.,0.,0.,0.,1.}, anOut{0.,0.,0.,1.};
 
-	for (int i = 0; i < 100000; ++i) {
-		net.train(gIn, gOut); // Giraffe
-		net.train(cIn, cOut); // Goat
-		net.train(fIn, fOut); // Ant
+	deb("Before training:");
+	deb("Giraffe ", net.calculate(giIn), "-", giOut);
+	deb("Elephant", net.calculate(elIn), "-", elOut);
+	deb("Goat    ", net.calculate(goIn), "-", goOut);
+	deb("Ant     ", net.calculate(anIn), "-", anOut);
+
+	for (int i = 0; i < 50000; ++i) {
+		net.train(giIn, giOut); // Giraffe
+		net.train(elIn, elOut); // Elephant
+		net.train(goIn, goOut); // Goat
+		net.train(anIn, anOut); // Ant
 	}
 
 	deb("\nAfter training:");
-	deb("Giraffe", net.calculate(gIn), "-", gOut);
-	deb("Goat   ", net.calculate(cIn), "-", cOut);
-	deb("Ant    ", net.calculate(fIn), "-", fOut);
+	deb("Giraffe ", net.calculate(giIn), "-", giOut);
+	deb("Elephant", net.calculate(elIn), "-", elOut);
+	deb("Goat    ", net.calculate(goIn), "-", goOut);
+	deb("Ant     ", net.calculate(anIn), "-", anOut);
 }
