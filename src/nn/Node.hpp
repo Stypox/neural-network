@@ -14,24 +14,37 @@
 
 namespace nn {
 
-class Node {
-	friend class Network;
+struct Node {
+	struct Param {
+		flt_t value;
+		flt_t derivative = 0;
+
+		Param(flt_t v) : value{v} {}
+		Param& operator=(flt_t v) { value = v; return *this; }
+
+		inline void resetDerivative() { derivative = 0; }
+		inline operator flt_t() { return value; }
+	};
 
 	flt_t m_value;
-	std::vector<flt_t> m_weights, m_outputs;
 
-	// things for the network
-	flt_t m_sumInputs;
-	std::vector<flt_t> m_weightDerivatives;
-	flt_t m_derivativeSoFar;
-public:
-	Node(size_t outputCount);
-	Node(std::vector<flt_t> weights);
+	// the following members are not used in input nodes
+	Param m_bias;
+	std::vector<Param> m_weights; // weights coming from inputs
+
+	// the following members are needed to calculate derivatives
+	// TODO remove assignments to m_valueBeforeSig when just calculating (not training)
+	// TODO replace with s'(m_valueBeforeSig)
+	flt_t m_valueBeforeSig;
+	flt_t m_derivativeFromHereOn;
+
+
+	Node(size_t inputCount);
 
 	void setValueDirectly(flt_t value);
 	void setValueFromSum(flt_t sumInputs);
 
-	flt_t weightTo(size_t nodeB) const;
+	Param& weightFrom(size_t nodeA);
 };
 
 } /* namespace nn */

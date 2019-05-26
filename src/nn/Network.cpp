@@ -12,20 +12,22 @@
 
 namespace nn {
 
-void Network::updateLayer(const size_t l) {
-	for(size_t i = 0; i != m_nodes[l].size(); ++i) {
-		flt_t sum = std::accumulate(m_nodes[l-1].begin(), m_nodes[l-1].end(), (flt_t)0.0,
-				[i](const flt_t& a, const Node& b){
-					return a + b.m_outputs[i];
-				});
-		m_nodes[l][i].setValueFromSum(sum);
+void Network::updateLayer(const size_t x) {
+	for(auto&& node : m_nodes[x]) {
+		flt_t sum = 0;
+		for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+			sum +=
+				node.weightFrom(yFrom)
+				* m_nodes[x-1][yFrom].m_value;
+		}
+		node.setValueFromSum(sum);
 	}
 }
 void Network::updateOutputs(const std::vector<flt_t>& inputs) {
-	for(size_t i = 0; i != m_nodes.front().size(); ++i)
-		m_nodes[0][i].setValueDirectly(inputs[i]);
-	for(size_t i = 1; i != m_nodes.size(); ++i)
-		updateLayer(i);
+	for(size_t y = 0; y != m_nodes.front().size(); ++y)
+		m_nodes[0][y].setValueDirectly(inputs[y]);
+	for(size_t x = 1; x != m_nodes.size(); ++x)
+		updateLayer(x);
 }
 
 flt_t Network::performance(const std::vector<flt_t>& expectedOutputs) {
@@ -37,85 +39,125 @@ flt_t Network::performance(const std::vector<flt_t>& expectedOutputs) {
 	return squaresSum;
 }
 
-flt_t Network::performanceDerivative(const std::vector<flt_t>& outputDeltas) {
-	/*
-	  dP                                              dO
-	  --  =  accumulateForEveryO( outputDeltas[O]  *  -- )
-	  dx                                              dx
+void Network::resetParamDerivatives() {
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			node.m_bias.resetDerivative();
+			for(auto&& weight : node.m_weights) {
+				weight.resetDerivative();
+			}
+		}
+	}
+}
+void Network::resetDerivativesFromHereOn() {
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			node.m_derivativeFromHereOn = 0;
+		}
+	}
+}
 
-	  D is the performance and O is any output node
+void Network::genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta) {
+	resetDerivativesFromHereOn(); // this allows to use +=
+
+	m_nodes.back()[consideredOutput].m_derivativeFromHereOn =
+			sigDeriv(m_nodes.back()[consideredOutput].m_valueBeforeSig)
+			* outputDelta;
+
+	// ignore input layer; second layer only gets the m_derivativeFromHereOn
+	for(size_t x = m_nodes.size()-1; x != 1; --x) {
+		for(auto&& node : m_nodes[x]) {
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x-1][yFrom].m_derivativeFromHereOn +=
+						sigDeriv(m_nodes[x-1][yFrom].m_valueBeforeSig)
+						* node.m_derivativeFromHereOn
+						* node.weightFrom(yFrom);
+			}
+		}
+	}
+}
+void Network::addWeightDerivatives() {
+	/*
+		dP                                                     dO
+		--  =  accumulateForEveryO( actualMinusExpected(O)  *  -- )
+		dw                                                     dw
+
+		dO
+		--  =  nodeBeforeWeightValue(w)  *  derivativeFromHereOn(O)
+		dw
+
+		P is the performance, w the weight, O every output node
+		every actualMinusExpected(O)*dO/dw can be calculated separately and summed
 	*/
 
-	flt_t accumulated = 0;
-	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		accumulated += outputDeltas[y] * m_nodes.back()[y].m_derivativeSoFar;
-	}
-
-	return accumulated;
-}
-flt_t Network::getDerivative(const size_t nodeAx, const size_t nodeAy, const size_t nodeBy, const std::vector<flt_t>& outputDeltas) {
-	size_t nodeBx = nodeAx+1;
-	for(size_t y = 0; y != m_nodes[nodeBx].size(); ++y) {
-		m_nodes[nodeBx][y].m_derivativeSoFar = 0;
-	}
-	m_nodes[nodeBx][nodeBy].m_derivativeSoFar = sigDeriv(m_nodes[nodeBx][nodeBy].m_sumInputs) * m_nodes[nodeAx][nodeAy].m_value;
-
-	for(size_t x = nodeBx+1; x != m_nodes.size(); ++x) {
-		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
-			/*
-			  dB                                                                        dA
-			  --  =  sigDeriv(B.m_sumInputs)  *  accumulateForEveryA( A.weightTo(B)  *  -- )
-			  dx                                                                        dx
-
-			  A is any node before B --> xB=xA-1
-			*/
-
-			flt_t accumulated = 0;
-			for(size_t yBef = 0; yBef != m_nodes[x-1].size(); ++yBef) {
-				accumulated += m_nodes[x-1][yBef].weightTo(y) * m_nodes[x-1][yBef].m_derivativeSoFar;
-			}
-
-			m_nodes[x][y].m_derivativeSoFar = sigDeriv(m_nodes[x][y].m_sumInputs) * accumulated;
-		}
-	}
-
-	return performanceDerivative(outputDeltas);
-}
-
-void Network::genDerivativesForAllWeights(const std::vector<flt_t>& outputDeltas) {
-	for(size_t x = 0; x != m_nodes.size()-1; ++x) {
-		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
-			for(size_t yTo = 0; yTo != m_nodes[x+1].size(); ++yTo) {
-				m_nodes[x][y].m_weightDerivatives[yTo] = getDerivative(x, y, yTo, outputDeltas);
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				node.weightFrom(yFrom).derivative +=
+						node.m_derivativeFromHereOn
+						* m_nodes[x-1][yFrom].m_value;
 			}
 		}
 	}
 }
-void Network::applyDerivativesToAllWeights(flt_t eta, flt_t maxChange) {
-	for(size_t x = 0; x != m_nodes.size()-1; ++x) {
-		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
-			for(size_t yTo = 0; yTo != m_nodes[x].size(); ++yTo) {
-				// if the derivative is positive, by decreasing the weight we also decrease the output of the network
-				// otherwise the weight should be increased
-				flt_t change = m_nodes[x][y].m_weightDerivatives[yTo]*eta;
-				if (change > 0) {
-					m_nodes[x][y].m_weights[yTo] -= std::min(change, maxChange);
-				} else if (change < 0) {
-					m_nodes[x][y].m_weights[yTo] -= std::max(change, -maxChange);
-				}
+void Network::addBiasDerivatives() {
+	/*
+		dP                                                     dO
+		--  =  accumulateForEveryO( actualMinusExpected(O)  *  -- )
+		db                                                     db
+
+		dO
+		-- = derivativeFromHereOn(O)
+		db
+
+		P is the performance, b the bias, O every output node
+		every actualMinusExpected(O)*dO/db can be calculated separately and summed
+	*/
+
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			node.m_bias.derivative += node.m_derivativeFromHereOn;
+		}
+	}
+}
+
+void Network::applyAllDerivatives(const flt_t eta, const flt_t maxChange) {
+	static auto changeAccordingly = [&eta, &maxChange](Node::Param& paramToChange) {
+		// if the derivative is positive, by decreasing the weight we also decrease the output of the network
+		// otherwise the weight should be increased
+
+		flt_t change = paramToChange.derivative * eta;
+		if (change > 0) {
+			paramToChange.value -= std::min(change, maxChange);
+		} else if (change < 0) {
+			paramToChange.value -= std::max(change, -maxChange);
+		}
+	};
+
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				changeAccordingly(node.weightFrom(yFrom));
 			}
+
+			changeAccordingly(node.m_bias);
 		}
 	}
 }
 
 Network::Network(const std::initializer_list<size_t>& dimensions) {
-	for(size_t x = 0; x != dimensions.size()-1; ++x) { // the last neurons have no output
+	m_nodes.push_back({});
+	for(size_t y = 0; y != *(dimensions.end()-1); ++y) {
+		// inputs have no input-connections
+		m_nodes.back().push_back(Node{0});
+	}
+
+	for(size_t x = 1; x != dimensions.size(); ++x) {
 		m_nodes.push_back({});
 		for(size_t y = 0; y != dimensions.begin()[x]; ++y) {
-			m_nodes.back().push_back(Node{dimensions.begin()[x+1]});
+			m_nodes.back().push_back(Node{dimensions.begin()[x-1]});
 		}
 	}
-	m_nodes.push_back(std::vector<Node>(*(dimensions.end()-1), Node{0}));
 }
 
 std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
@@ -128,14 +170,16 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 
 void Network::train(const std::vector<flt_t>& inputs, const std::vector<flt_t>& expectedOutputs) {
 	updateOutputs(inputs);
+	resetParamDerivatives(); // this allows to use += on derivatives
 
 	std::vector<flt_t> outputDeltas;
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		outputDeltas.push_back(m_nodes.back()[y].m_value - expectedOutputs[y]);
+		genDerivativesFromHereOn(y, m_nodes.back()[y].m_value - expectedOutputs[y]);
+		addWeightDerivatives();
+		addBiasDerivatives();
 	}
 
-	genDerivativesForAllWeights(outputDeltas);
-	applyDerivativesToAllWeights(100,0.005);
+	applyAllDerivatives(100,0.005);
 }
 
 } /* namespace nn */

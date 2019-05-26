@@ -28,9 +28,9 @@ class Network {
 
 	/**
 	 * @brief updates layer (to be called after the inputs have changed)
-	 * @param l layer to update, must be >= 1 (not the inputs layer)
+	 * @param x layer to update, must be >= 1 (not the inputs layer)
 	 */
-	void updateLayer(const size_t l);
+	void updateLayer(const size_t x);
 	/**
 	 * @brief updates the output layer based on the inputs
 	 * @param inputs array of inputs of the same length as the first layer of the network
@@ -45,35 +45,43 @@ class Network {
 	flt_t performance(const std::vector<flt_t>& expectedOutputs);
 
 	/**
-	 * @brief calculates the derivative d(performance)/d(weight) based on the info saved in the output nodes
-	 * @param outputDeltas array of (outputs[i] - expectedOutputs[i]) for every i
-	 * @return d(output)/d(weight)
+	 * @brief sets all the derivatives of the parameters to 0, so that += can be used
+	 *   To be called before calculating derivatives
+	 * @see addWeightDerivatives
+	 * @see addBiasDerivatives
 	 */
-	flt_t performanceDerivative(const std::vector<flt_t>& outputDeltas);
+	void resetParamDerivatives();
 	/**
-	 * @brief calculates the derivative do/dw, where:
-	 *   - w is the weight of the connection between nodeA(nodeAx, nodeAy) and nodeB(nodeAx+1, nodeBy)
-	 *   - o is the output
-	 * @param nodeAx see above
-	 * @param nodeAy see above
-	 * @param nodeBy see above; nodeBx is not needed since it is always =nodeAx+1
-	 * @param outputDeltas array of (outputs[i] - expectedOutputs[i]) for every i
-	 * @return derivative d(performance)/d(weight)
+	 * @brief sets all derivativeFromHereOn of the nodes to 0, so that += can be used
+	 *   To be called before generating the derivativeFromHereOn for every output
+	 * @see genDerivativesFromHereOn
 	 */
-	flt_t getDerivative(const size_t nodeAx, const size_t nodeAy, const size_t nodeBy, const std::vector<flt_t>& outputDeltas);
+	void resetDerivativesFromHereOn();
 
 	/**
-	 * @brief generates the derivative for each connection and saved them inside the nodes
-	 * @param outputDeltas array of (outputs[i] - expectedOutputs[i]) for every i
+	 * @brief calculates and saves the derivativefromHereOn in each node
+	 * @param consideredOutput y of the considered output node
+	 * @param outputDelta (actualValue-expectedValue) of the considered output
 	 */
-	void genDerivativesForAllWeights(const std::vector<flt_t>& outputDeltas);
+	void genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta);
 	/**
-	 * @brief using the results of the derivatives, changes the weights by
+	 * @brief using the derivativefromHereOn saved in the nodes, calculates the derivative of
+	 *   the currently considered output over every weight and adds it to the weight's derivative
+	 */
+	void addWeightDerivatives();
+	/**
+	 * @brief using the derivativefromHereOn saved in the nodes, calculates the derivative of
+	 *   the currently considered output over every bias and adds it to the bias' derivative
+	 */
+	void addBiasDerivatives();
+
+	/**
+	 * @brief using the derivatives saved in each parameter, changes their values by
 	 *   (deriv>0 ? min(eta*deriv, maxChange) : max(eta*deriv, -maxChange))
 	 * @param eta rate of improvement
 	 * @param maxChange maximum change to apply to the weights
 	 */
-	void applyDerivativesToAllWeights(flt_t eta, flt_t maxChange);
+	void applyAllDerivatives(const flt_t eta, const flt_t maxChange);
 
 public:
 	/**
