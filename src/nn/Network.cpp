@@ -12,6 +12,7 @@
 
 namespace nn {
 
+template<bool training>
 void Network::updateLayer(const size_t x) {
 	for(auto&& node : m_nodes[x]) {
 		flt_t sum = 0;
@@ -20,14 +21,21 @@ void Network::updateLayer(const size_t x) {
 				node.weightFrom(yFrom)
 				* m_nodes[x-1][yFrom].m_value;
 		}
-		node.setValueFromSum(sum);
+
+		if constexpr(training) {
+			node.setValueFromSumPrepareTraining(sum);
+		}
+		else {
+			node.setValueFromSum(sum);
+		}
 	}
 }
+template<bool training>
 void Network::updateOutputs(const std::vector<flt_t>& inputs) {
 	for(size_t y = 0; y != m_nodes.front().size(); ++y)
 		m_nodes[0][y].setValueDirectly(inputs[y]);
 	for(size_t x = 1; x != m_nodes.size(); ++x)
-		updateLayer(x);
+		updateLayer<training>(x);
 }
 
 flt_t Network::performance(const std::vector<flt_t>& expectedOutputs) {
@@ -61,7 +69,7 @@ void Network::genDerivativesFromHereOn(const size_t consideredOutput, const flt_
 	resetDerivativesFromHereOn(); // this allows to use +=
 
 	m_nodes.back()[consideredOutput].m_derivativeFromHereOn =
-			sigDeriv(m_nodes.back()[consideredOutput].m_valueBeforeSig)
+			m_nodes.back()[consideredOutput].m_sigDerivValue
 			* outputDelta;
 
 	// ignore input layer; second layer only gets the m_derivativeFromHereOn
@@ -69,7 +77,7 @@ void Network::genDerivativesFromHereOn(const size_t consideredOutput, const flt_
 		for(auto&& node : m_nodes[x]) {
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
 				m_nodes[x-1][yFrom].m_derivativeFromHereOn +=
-						sigDeriv(m_nodes[x-1][yFrom].m_valueBeforeSig)
+						m_nodes[x-1][yFrom].m_sigDerivValue
 						* node.m_derivativeFromHereOn
 						* node.weightFrom(yFrom);
 			}
@@ -161,7 +169,7 @@ Network::Network(const std::initializer_list<size_t>& dimensions) {
 }
 
 std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
-	updateOutputs(inputs);
+	updateOutputs<false>(inputs);
 	std::vector<flt_t> result;
 	for(size_t i = 0; i != m_nodes.back().size(); ++i)
 		result.push_back(m_nodes.back()[i].m_value);
@@ -169,7 +177,7 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 }
 
 void Network::train(const std::vector<flt_t>& inputs, const std::vector<flt_t>& expectedOutputs) {
-	updateOutputs(inputs);
+	updateOutputs<true>(inputs);
 	resetParamDerivatives(); // this allows to use += on derivatives
 
 	std::vector<flt_t> outputDeltas;

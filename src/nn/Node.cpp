@@ -12,7 +12,7 @@ namespace nn {
 
 Node::Node(size_t inputCount) :
 		m_value{}, m_bias{nn::random()},
-		m_weights{}, m_valueBeforeSig{},
+		m_weights{}, m_sigDerivValue{},
 		m_derivativeFromHereOn{} {
 	std::generate_n(std::back_inserter(m_weights), inputCount, nn::random);
 }
@@ -21,8 +21,12 @@ void Node::setValueDirectly(flt_t value) {
 	m_value = value;
 }
 void Node::setValueFromSum(flt_t sumInputs) {
-	m_valueBeforeSig = sumInputs + m_bias;
-	m_value = sig(m_valueBeforeSig);
+	m_value = sig(sumInputs + m_bias);
+}
+void Node::setValueFromSumPrepareTraining(flt_t sumInputs) {
+	flt_t valueBeforeSig = sumInputs + m_bias;
+	m_sigDerivValue = sigDeriv(valueBeforeSig);
+	m_value = sig(valueBeforeSig);
 }
 
 Node::Param& Node::weightFrom(size_t nodeA) {

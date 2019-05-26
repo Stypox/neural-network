@@ -33,9 +33,7 @@ struct Node {
 	std::vector<Param> m_weights; // weights coming from inputs
 
 	// the following members are needed to calculate derivatives
-	// TODO remove assignments to m_valueBeforeSig when just calculating (not training)
-	// TODO replace with s'(m_valueBeforeSig)
-	flt_t m_valueBeforeSig;
+	flt_t m_sigDerivValue;
 	flt_t m_derivativeFromHereOn;
 
 
@@ -43,6 +41,7 @@ struct Node {
 
 	void setValueDirectly(flt_t value);
 	void setValueFromSum(flt_t sumInputs);
+	void setValueFromSumPrepareTraining(flt_t sumInputs);
 
 	Param& weightFrom(size_t nodeA);
 };

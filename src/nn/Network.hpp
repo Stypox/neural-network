@@ -29,12 +29,15 @@ class Network {
 	/**
 	 * @brief updates layer (to be called after the inputs have changed)
 	 * @param x layer to update, must be >= 1 (not the inputs layer)
+	 * @tparam training prepare training data in nodes
 	 */
+	template<bool training>
 	void updateLayer(const size_t x);
 	/**
 	 * @brief updates the output layer based on the inputs
 	 * @param inputs array of inputs of the same length as the first layer of the network
 	 */
+	template<bool training>
 	void updateOutputs(const std::vector<flt_t>& inputs);
 
 	/**
