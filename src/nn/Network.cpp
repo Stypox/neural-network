@@ -140,6 +140,11 @@ void Network::applyAllDerivatives(const flt_t eta, const flt_t maxChange) {
 		} else if (change < 0) {
 			paramToChange.value -= std::max(change, -maxChange);
 		}
+
+		if (paramToChange.value > 1.0)
+			paramToChange.value = 1.0;
+		else if (paramToChange.value < -1.0)
+			paramToChange.value = -1.0;
 	};
 
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
