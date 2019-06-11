@@ -1,7 +1,14 @@
 .cproject
 .project
 
+*.cmake
+*-ubyte
+CMakeCache.txt
+Makefile
+executable
+
 .settings/
 Debug/
 Release/
 .vscode/
+CMakeFiles/
