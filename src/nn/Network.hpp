@@ -94,13 +94,11 @@ class Network {
 	/**
 	 * @brief scales the `costDerivative` of every parameter by a factor of `1/numberOfSamples`,
 	 *   so that it becomes the average of all considered samples.
-	 *   Then, using the scaled `costDerivative`, changes the parameters' values by
-	 *   `(deriv>0 ? min(eta*deriv, maxChange) : max(eta*deriv, -maxChange))`
+	 *   Then, using the scaled `costDerivative`, changes the parameters' values by `eta*deriv`
 	 * @param numberOfSamples how many samples have been used to calculate the cost derivative
 	 * @param eta rate of improvement
-	 * @param maxChange maximum change to apply to the weights
 	 */
-	void scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta, const flt_t maxChange);
+	void scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta);
 
 public:
 	/**

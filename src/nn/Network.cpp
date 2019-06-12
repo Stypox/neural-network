@@ -150,12 +150,12 @@ void Network::addDerivativesToCostDerivatives() {
 	}
 }
 
-void Network::scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta, const flt_t maxChange) {
+void Network::scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta) {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
-			node.m_bias.scaleAndApplyCostDerivative(numberOfSamples, eta, maxChange);
+			node.m_bias.scaleAndApplyCostDerivative(numberOfSamples, eta);
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				node.weightFrom(yFrom).scaleAndApplyCostDerivative(numberOfSamples, eta, maxChange);
+				node.weightFrom(yFrom).scaleAndApplyCostDerivative(numberOfSamples, eta);
 			}
 		}
 	}
@@ -225,7 +225,7 @@ void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, con
 		addDerivativesToCostDerivatives();
 	}
 
-	scaleAndApplyCostDerivatives(std::distance(samplesBegin, samplesEnd), 10.1, 0.001);
+	scaleAndApplyCostDerivatives(std::distance(samplesBegin, samplesEnd), 3.0);
 }
 
 } /* namespace nn */
