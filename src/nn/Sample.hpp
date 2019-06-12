@@ -2,7 +2,7 @@
 #define _NN_SAMPLE_HPP_
 
 #include <vector>
-#include "shared.hpp"
+#include "utils.hpp"
 
 namespace nn {
 	struct Sample {

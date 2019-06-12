@@ -10,7 +10,7 @@
 
 #include <vector>
 #include <ostream>
-#include "shared.hpp"
+#include "utils.hpp"
 
 namespace nn {
 

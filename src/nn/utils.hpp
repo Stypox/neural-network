@@ -5,8 +5,8 @@
  *      Author: stypox
  */
 
-#ifndef _NN_SHARED_HPP_
-#define _NN_SHARED_HPP_
+#ifndef _NN_UTILS_HPP_
+#define _NN_UTILS_HPP_
 
 namespace nn {
 	using flt_t = float;
@@ -16,4 +16,4 @@ namespace nn {
 	flt_t sigDeriv(flt_t x);
 }
 
-#endif /* SHARED_HPP_ */
+#endif /* _NN_UTILS_HPP_ */

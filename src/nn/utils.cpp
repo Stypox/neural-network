@@ -5,7 +5,7 @@
  *      Author: stypox
  */
 
-#include "shared.hpp"
+#include "utils.hpp"
 #include <random>
 #include <cmath>
 

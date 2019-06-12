@@ -1,7 +1,7 @@
 #ifndef _DEB_HPP_
 #define _DEB_HPP_
 #include <iostream>
-#include "nn/shared.hpp"
+#include "nn/utils.hpp"
 
 // TODO remove this file, useful only for debugging
 
