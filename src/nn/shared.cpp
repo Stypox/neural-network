@@ -13,7 +13,7 @@ namespace nn {
 	flt_t random() {
 		static std::random_device rd;
 		static std::mt19937 engine{rd()};
-		static std::uniform_real_distribution<> dist{-1.0, 1.0};
+		static std::normal_distribution<> dist;
 		return dist(engine);
 	}
 	flt_t sig(flt_t x) {
