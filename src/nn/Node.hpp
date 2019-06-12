@@ -16,8 +16,8 @@ struct Node {
 		Param(flt_t v) : value{v} {}
 		Param& operator=(flt_t v) { value = v; return *this; }
 
-		inline void resetDerivative() { currentCostDerivative = 0; }
-		inline void resetCostDerivative() { totalCostDerivative = 0; }
+		inline void resetCurrentCostDerivative() { currentCostDerivative = 0; }
+		inline void resetTotalCostDerivative() { totalCostDerivative = 0; }
 
 		inline void addDerivativeToCostDerivative() { totalCostDerivative += currentCostDerivative; }
 

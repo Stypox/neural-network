@@ -47,27 +47,27 @@ flt_t Network::performance(const std::vector<flt_t>& expectedOutputs) {
 	return squaresSum;
 }
 
-void Network::resetParamDerivatives() {
+void Network::resetCurrentCostDerivatives() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
-			node.m_bias.resetDerivative();
+			node.m_bias.resetCurrentCostDerivative();
 			for(auto&& weight : node.m_weights) {
-				weight.resetDerivative();
+				weight.resetCurrentCostDerivative();
 			}
 		}
 	}
 }
-void Network::resetParamCostDerivatives() {
+void Network::resetTotalCostDerivatives() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
-			node.m_bias.resetCostDerivative();
+			node.m_bias.resetTotalCostDerivative();
 			for(auto&& weight : node.m_weights) {
-				weight.resetCostDerivative();
+				weight.resetTotalCostDerivative();
 			}
 		}
 	}
 }
-void Network::resetDerivativesFromHereOn() {
+void Network::resetError() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
 			node.m_error = 0;
@@ -75,8 +75,8 @@ void Network::resetDerivativesFromHereOn() {
 	}
 }
 
-void Network::genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta) {
-	resetDerivativesFromHereOn(); // this allows to use +=
+void Network::genError(const size_t consideredOutput, const flt_t outputDelta) {
+	resetError(); // this allows to use +=
 
 	m_nodes.back()[consideredOutput].m_error =
 			m_nodes.back()[consideredOutput].m_sigDerivValue
@@ -207,17 +207,17 @@ flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, con
 }
 
 void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd, const flt_t eta) {
-	resetParamCostDerivatives(); // this allows to use += on cost derivatives
+	resetTotalCostDerivatives(); // this allows to use `+=` on `totalCostDerivative`s
 
 	for(auto it = samplesBegin; it != samplesEnd; ++it) {
 		auto& [inputs, expectedOutputs] = *it;
 
 		updateOutputs<true>(inputs);
-		resetParamDerivatives(); // this allows to use += on derivatives
+		resetCurrentCostDerivatives(); // this allows to use `+=` on `currentCostDerivative`s
 
 		std::vector<flt_t> outputDeltas;
 		for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-			genDerivativesFromHereOn(y, m_nodes.back()[y].m_value - expectedOutputs[y]);
+			genError(y, m_nodes.back()[y].m_value - expectedOutputs[y]);
 			addWeightDerivatives();
 			addBiasDerivatives();
 		}

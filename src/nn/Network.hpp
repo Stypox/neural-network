@@ -57,16 +57,16 @@ class Network {
 	/**
 	 * @brief sets all `error`s of the nodes to `0`, so that `+=` can be used.
 	 *   To be called before generating the `error` for every output.
-	 * @see genDerivativesFromHereOn
+	 * @see genError
 	 */
-	void resetDerivativesFromHereOn();
+	void resetError();
 
 	/**
-	 * @brief calculates and saves the `derivativefromHereOn` in each node
+	 * @brief calculates and saves the `error` in each node
 	 * @param consideredOutput y of the considered output node
 	 * @param outputDelta `(actualValue-expectedValue)` of the considered output
 	 */
-	void genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta);
+	void genError(const size_t consideredOutput, const flt_t outputDelta);
 	/**
 	 * @brief using the `error` saved in the nodes, calculates the cost derivative of the currently
 	 *   considered output over every weight and adds it to the weight's `currentCostDerivative`
