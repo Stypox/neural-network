@@ -70,7 +70,7 @@ void Network::resetParamCostDerivatives() {
 void Network::resetDerivativesFromHereOn() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
-			node.m_derivativeFromHereOn = 0;
+			node.m_error = 0;
 		}
 	}
 }
@@ -78,17 +78,17 @@ void Network::resetDerivativesFromHereOn() {
 void Network::genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta) {
 	resetDerivativesFromHereOn(); // this allows to use +=
 
-	m_nodes.back()[consideredOutput].m_derivativeFromHereOn =
+	m_nodes.back()[consideredOutput].m_error =
 			m_nodes.back()[consideredOutput].m_sigDerivValue
 			* outputDelta;
 
-	// ignore input layer; second layer only gets the m_derivativeFromHereOn
+	// ignore input layer; second layer only gets the m_error
 	for(size_t x = m_nodes.size()-1; x != 1; --x) {
 		for(auto&& node : m_nodes[x]) {
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				m_nodes[x-1][yFrom].m_derivativeFromHereOn +=
+				m_nodes[x-1][yFrom].m_error +=
 						m_nodes[x-1][yFrom].m_sigDerivValue
-						* node.m_derivativeFromHereOn
+						* node.m_error
 						* node.weightFrom(yFrom);
 			}
 		}
@@ -101,7 +101,7 @@ void Network::addWeightDerivatives() {
 		dw                                                     dw
 
 		dO
-		--  =  nodeBeforeWeightValue(w)  *  derivativeFromHereOn(O)
+		--  =  nodeBeforeWeightValue(w)  *  error(O)
 		dw
 
 		P is the performance, w the weight, O every output node
@@ -111,8 +111,8 @@ void Network::addWeightDerivatives() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				node.weightFrom(yFrom).derivative +=
-						node.m_derivativeFromHereOn
+				node.weightFrom(yFrom).currentCostDerivative +=
+						node.m_error
 						* m_nodes[x-1][yFrom].m_value;
 			}
 		}
@@ -125,7 +125,7 @@ void Network::addBiasDerivatives() {
 		db                                                     db
 
 		dO
-		--  =  derivativeFromHereOn(O)
+		--  =  error(O)
 		db
 
 		P is the performance, b the bias, O every output node
@@ -134,7 +134,7 @@ void Network::addBiasDerivatives() {
 
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
-			node.m_bias.derivative += node.m_derivativeFromHereOn;
+			node.m_bias.currentCostDerivative += node.m_error;
 		}
 	}
 }

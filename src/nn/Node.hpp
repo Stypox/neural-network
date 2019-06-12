@@ -10,23 +10,23 @@ namespace nn {
 struct Node {
 	struct Param {
 		flt_t value;
-		flt_t derivative = 0;
-		flt_t costDerivative = 0;
+		flt_t currentCostDerivative = 0;
+		flt_t totalCostDerivative = 0;
 
 		Param(flt_t v) : value{v} {}
 		Param& operator=(flt_t v) { value = v; return *this; }
 
-		inline void resetDerivative() { derivative = 0; }
-		inline void resetCostDerivative() { costDerivative = 0; }
+		inline void resetDerivative() { currentCostDerivative = 0; }
+		inline void resetCostDerivative() { totalCostDerivative = 0; }
 
-		inline void addDerivativeToCostDerivative() { costDerivative += derivative; }
+		inline void addDerivativeToCostDerivative() { totalCostDerivative += currentCostDerivative; }
 
 		inline void scaleAndApplyCostDerivative(const size_t numberOfSamples, const flt_t eta) {
-			costDerivative /= numberOfSamples;
+			totalCostDerivative /= numberOfSamples;
 			
-			// if the costDerivative is positive, by decreasing the weight we also decrease
+			// if the totalCostDerivative is positive, by decreasing the weight we also decrease
 			// the cost of the network, otherwise the weight should be increased
-			value -= costDerivative * eta;
+			value -= totalCostDerivative * eta;
 		}
 
 		inline operator flt_t() { return value; }
@@ -40,7 +40,7 @@ struct Node {
 
 	// the following members are needed to calculate derivatives
 	flt_t m_sigDerivValue;
-	flt_t m_derivativeFromHereOn;
+	flt_t m_error;
 
 
 	Node(size_t inputCount);

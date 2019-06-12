@@ -13,7 +13,7 @@ namespace nn {
 Node::Node(size_t inputCount) :
 		m_value{}, m_bias{nn::random()},
 		m_weights{}, m_sigDerivValue{},
-		m_derivativeFromHereOn{} {
+		m_error{} {
 	std::generate_n(std::back_inserter(m_weights), inputCount, nn::random);
 }
 

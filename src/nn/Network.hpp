@@ -42,21 +42,21 @@ class Network {
 	flt_t performance(const std::vector<flt_t>& expectedOutputs);
 
 	/**
-	 * @brief sets all the derivatives of the parameters to `0`, so that `+=` can be used
-	 *   To be called before calculating derivatives
+	 * @brief sets all the `currentCostDerivative`s of the parameters to `0`, so that `+=` can be used.
+	 *   To be called before calculating `currentCostDerivative`.
 	 * @see addWeightDerivatives
 	 * @see addBiasDerivatives
 	 */
-	void resetParamDerivatives();
+	void resetCurrentCostDerivatives();
 	/**
-	 * @brief sets all the derivatives of the parameters to `0`, so that `+=` can be used
-	 *   To be called before calculating cost derivatives
+	 * @brief sets all the `totalCostDerivative`s of the parameters to `0`, so that `+=` can be used.
+	 *   To be called before calculating `totalCostDerivative`.
 	 * @see addDerivativesToCostDerivatives
 	 */
-	void resetParamCostDerivatives();
+	void resetTotalCostDerivatives();
 	/**
-	 * @brief sets all `derivativeFromHereOn` of the nodes to `0`, so that `+=` can be used
-	 *   To be called before generating the `derivativeFromHereOn` for every output
+	 * @brief sets all `error`s of the nodes to `0`, so that `+=` can be used.
+	 *   To be called before generating the `error` for every output.
 	 * @see genDerivativesFromHereOn
 	 */
 	void resetDerivativesFromHereOn();
@@ -68,27 +68,28 @@ class Network {
 	 */
 	void genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta);
 	/**
-	 * @brief using the `derivativefromHereOn` saved in the nodes, calculates the derivative of
-	 *   the currently considered output over every weight and adds it to the weight's derivative
+	 * @brief using the `error` saved in the nodes, calculates the cost derivative of the currently
+	 *   considered output over every weight and adds it to the weight's `currentCostDerivative`
 	 */
 	void addWeightDerivatives();
 	/**
-	 * @brief using the `derivativefromHereOn` saved in the nodes, calculates the derivative of
-	 *   the currently considered output over every bias and adds it to the bias' derivative
+	 * @brief using the `error` saved in the nodes, calculates the cost derivative of the currently
+	 *   considered output over every bias and adds it to the bias' `currentCostDerivative`
 	 */
 	void addBiasDerivatives();
 
 	/**
-	 * @brief adds the derivative saved in every parameter (for the currently considered set
-	 *   of outputs) to their `costDerivative`
+	 * @brief adds the `currentCostDerivative` saved in every parameter (for the currently considered set
+	 *   of outputs) to their `totalCostDerivative`.
+	 *   To be called after completing `currentCostDerivative`s' calculations for a sample.
 	 */
 	void addDerivativesToCostDerivatives();
 
 	/**
-	 * @brief scales the `costDerivative` of every parameter by a factor of `1/numberOfSamples`,
+	 * @brief scales the `totalCostDerivative` of every parameter by a factor of `1/numberOfSamples`,
 	 *   so that it becomes the average of all considered samples.
-	 *   Then, using the scaled `costDerivative`, changes the parameters' values by `eta*deriv`
-	 * @param numberOfSamples how many samples have been used to calculate the cost derivative
+	 *   Then, using the scaled `totalCostDerivative`, changes the parameters' values by `eta*deriv`
+	 * @param numberOfSamples how many samples have been used to calculate the total cost derivative
 	 * @param eta learning rate
 	 */
 	void scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta);
