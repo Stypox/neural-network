@@ -5,8 +5,8 @@
  *      Author: stypox
  */
 
-#ifndef NETWORK_HPP_
-#define NETWORK_HPP_
+#ifndef _NN_NETWORK_HPP_
+#define _NN_NETWORK_HPP_
 
 #include <vector>
 #include <ostream>

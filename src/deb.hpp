@@ -1,5 +1,5 @@
-#ifndef DEB_HPP_
-#define DEB_HPP_
+#ifndef _DEB_HPP_
+#define _DEB_HPP_
 #include <iostream>
 #include "nn/shared.hpp"
 

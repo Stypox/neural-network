@@ -5,8 +5,8 @@
  *      Author: stypox
  */
 
-#ifndef NODE_HPP_
-#define NODE_HPP_
+#ifndef _NN_NODE_HPP_
+#define _NN_NODE_HPP_
 
 #include <vector>
 #include <ostream>

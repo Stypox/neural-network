@@ -5,8 +5,8 @@
  *      Author: stypox
  */
 
-#ifndef SHARED_HPP_
-#define SHARED_HPP_
+#ifndef _NN_SHARED_HPP_
+#define _NN_SHARED_HPP_
 
 namespace nn {
 	using flt_t = float;
