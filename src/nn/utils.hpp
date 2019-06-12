@@ -1,10 +1,3 @@
-/*
- * shared.hpp
- *
- *  Created on: May 18, 2019
- *      Author: stypox
- */
-
 #ifndef _NN_UTILS_HPP_
 #define _NN_UTILS_HPP_
 

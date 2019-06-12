@@ -1,10 +1,3 @@
-/*
- * Network.hpp
- *
- *  Created on: May 17, 2019
- *      Author: stypox
- */
-
 #ifndef _NN_NETWORK_HPP_
 #define _NN_NETWORK_HPP_
 
@@ -49,38 +42,38 @@ class Network {
 	flt_t performance(const std::vector<flt_t>& expectedOutputs);
 
 	/**
-	 * @brief sets all the derivatives of the parameters to 0, so that += can be used
+	 * @brief sets all the derivatives of the parameters to `0`, so that `+=` can be used
 	 *   To be called before calculating derivatives
 	 * @see addWeightDerivatives
 	 * @see addBiasDerivatives
 	 */
 	void resetParamDerivatives();
 	/**
-	 * @brief sets all the derivatives of the parameters to 0, so that += can be used
-	 *   To be called before calculating derivatives
+	 * @brief sets all the derivatives of the parameters to `0`, so that `+=` can be used
+	 *   To be called before calculating cost derivatives
 	 * @see addDerivativesToCostDerivatives
 	 */
 	void resetParamCostDerivatives();
 	/**
-	 * @brief sets all derivativeFromHereOn of the nodes to 0, so that += can be used
-	 *   To be called before generating the derivativeFromHereOn for every output
+	 * @brief sets all `derivativeFromHereOn` of the nodes to `0`, so that `+=` can be used
+	 *   To be called before generating the `derivativeFromHereOn` for every output
 	 * @see genDerivativesFromHereOn
 	 */
 	void resetDerivativesFromHereOn();
 
 	/**
-	 * @brief calculates and saves the derivativefromHereOn in each node
+	 * @brief calculates and saves the `derivativefromHereOn` in each node
 	 * @param consideredOutput y of the considered output node
-	 * @param outputDelta (actualValue-expectedValue) of the considered output
+	 * @param outputDelta `(actualValue-expectedValue)` of the considered output
 	 */
 	void genDerivativesFromHereOn(const size_t consideredOutput, const flt_t outputDelta);
 	/**
-	 * @brief using the derivativefromHereOn saved in the nodes, calculates the derivative of
+	 * @brief using the `derivativefromHereOn` saved in the nodes, calculates the derivative of
 	 *   the currently considered output over every weight and adds it to the weight's derivative
 	 */
 	void addWeightDerivatives();
 	/**
-	 * @brief using the derivativefromHereOn saved in the nodes, calculates the derivative of
+	 * @brief using the `derivativefromHereOn` saved in the nodes, calculates the derivative of
 	 *   the currently considered output over every bias and adds it to the bias' derivative
 	 */
 	void addBiasDerivatives();
@@ -96,14 +89,14 @@ class Network {
 	 *   so that it becomes the average of all considered samples.
 	 *   Then, using the scaled `costDerivative`, changes the parameters' values by `eta*deriv`
 	 * @param numberOfSamples how many samples have been used to calculate the cost derivative
-	 * @param eta rate of improvement
+	 * @param eta learning rate
 	 */
 	void scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta);
 
 public:
 	/**
 	 * @brief constructs a fully-connected neural network
-	 *   All parameters' values are randomly initialized
+	 *   All parameters' values are randomly initialized with normal distribution
 	 * @param dimensions the length of every layer of nodes
 	 */
 	Network(const std::initializer_list<size_t>& dimensions);
@@ -117,7 +110,7 @@ public:
 
 	/**
 	 * @brief the cost function, defined as
-	 *   sumForEverySample( ||outputs-expectedOutputs||^2 ) / (2*numberOfSamples)
+	 *   `sumForEverySample( ||outputs-expectedOutputs||^2 ) / (2*numberOfSamples)`
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 * @return the cost of the network
@@ -128,10 +121,11 @@ public:
 	 * @brief trains the network to better perform with the provided samples
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
+	 * @param eta learning rate
 	 */
 	void train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd, const flt_t eta);
 };
 
 } /* namespace nn */
 
-#endif /* NETWORK_HPP_ */
+#endif /* _NN_NETWORK_HPP_ */

@@ -1,10 +1,3 @@
-/*
- * shared.cpp
- *
- *  Created on: May 18, 2019
- *      Author: stypox
- */
-
 #include "utils.hpp"
 #include <random>
 #include <cmath>

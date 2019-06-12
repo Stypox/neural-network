@@ -1,10 +1,3 @@
-/*
- * Node.hpp
- *
- *  Created on: May 18, 2019
- *      Author: stypox
- */
-
 #ifndef _NN_NODE_HPP_
 #define _NN_NODE_HPP_
 
@@ -61,4 +54,4 @@ struct Node {
 
 } /* namespace nn */
 
-#endif /* NODE_HPP_ */
+#endif /* _NN_NODE_HPP_ */

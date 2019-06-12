@@ -187,7 +187,7 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd) {
 	/*
 		           1
-		cost  =  -----  *  accumulateForEverySample( || outputs  -  expectedOutputs ||  ^  2 )
+		cost  =  -----  *  accumulateForEverySample( || actualOutputs  -  expectedOutputs ||  ^  2 )
                2 * n
 
 		                1
