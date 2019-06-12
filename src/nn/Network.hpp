@@ -129,7 +129,7 @@ public:
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 */
-	void train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd);
+	void train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd, const flt_t eta);
 };
 
 } /* namespace nn */

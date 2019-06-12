@@ -206,7 +206,7 @@ flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, con
 	return accumulatedPerformances / (2 * std::distance(samplesBegin, samplesEnd));
 }
 
-void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd) {
+void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd, const flt_t eta) {
 	resetParamCostDerivatives(); // this allows to use += on cost derivatives
 
 	for(auto it = samplesBegin; it != samplesEnd; ++it) {
@@ -225,7 +225,7 @@ void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, con
 		addDerivativesToCostDerivatives();
 	}
 
-	scaleAndApplyCostDerivatives(std::distance(samplesBegin, samplesEnd), 3.0);
+	scaleAndApplyCostDerivatives(std::distance(samplesBegin, samplesEnd), eta);
 }
 
 } /* namespace nn */
