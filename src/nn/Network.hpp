@@ -12,6 +12,7 @@
 #include <ostream>
 #include "shared.hpp"
 #include "Node.hpp"
+#include "Sample.hpp"
 
 namespace nn {
 
@@ -55,6 +56,12 @@ class Network {
 	 */
 	void resetParamDerivatives();
 	/**
+	 * @brief sets all the derivatives of the parameters to 0, so that += can be used
+	 *   To be called before calculating derivatives
+	 * @see addDerivativesToCostDerivatives
+	 */
+	void resetParamCostDerivatives();
+	/**
 	 * @brief sets all derivativeFromHereOn of the nodes to 0, so that += can be used
 	 *   To be called before generating the derivativeFromHereOn for every output
 	 * @see genDerivativesFromHereOn
@@ -79,17 +86,26 @@ class Network {
 	void addBiasDerivatives();
 
 	/**
-	 * @brief using the derivatives saved in each parameter, changes their values by
-	 *   (deriv>0 ? min(eta*deriv, maxChange) : max(eta*deriv, -maxChange))
+	 * @brief adds the derivative saved in every parameter (for the currently considered set
+	 *   of outputs) to their `costDerivative`
+	 */
+	void addDerivativesToCostDerivatives();
+
+	/**
+	 * @brief scales the `costDerivative` of every parameter by a factor of `1/numberOfSamples`,
+	 *   so that it becomes the average of all considered samples.
+	 *   Then, using the scaled `costDerivative`, changes the parameters' values by
+	 *   `(deriv>0 ? min(eta*deriv, maxChange) : max(eta*deriv, -maxChange))`
+	 * @param numberOfSamples how many samples have been used to calculate the cost derivative
 	 * @param eta rate of improvement
 	 * @param maxChange maximum change to apply to the weights
 	 */
-	void applyAllDerivatives(const flt_t eta, const flt_t maxChange);
+	void scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta, const flt_t maxChange);
 
 public:
 	/**
 	 * @brief constructs a fully-connected neural network
-	 *   All the weights are randomly initialized
+	 *   All parameters' values are randomly initialized
 	 * @param dimensions the length of every layer of nodes
 	 */
 	Network(const std::initializer_list<size_t>& dimensions);
@@ -102,11 +118,11 @@ public:
 	std::vector<flt_t> calculate(const std::vector<flt_t>& inputs);
 
 	/**
-	 * @brief trains the network to better perform with the provided inputs
-	 * @param inputs array of inputs of the same length as the first layer of the network
-	 * @param expectedOutputs array of expected values for every output node
+	 * @brief trains the network to better perform with the provided samples
+	 * @param [samplesBegin, samplesEnd] the samples containing the expected outputs
+	 *   for their inputs
 	 */
-	void train(const std::vector<flt_t>& inputs, const std::vector<flt_t>& expectedOutputs);
+	void train(const std::vector<Sample>::iterator& samplesBegin, const std::vector<Sample>::iterator& samplesEnd);
 };
 
 } /* namespace nn */

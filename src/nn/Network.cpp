@@ -57,6 +57,16 @@ void Network::resetParamDerivatives() {
 		}
 	}
 }
+void Network::resetParamCostDerivatives() {
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			node.m_bias.resetCostDerivative();
+			for(auto&& weight : node.m_weights) {
+				weight.resetCostDerivative();
+			}
+		}
+	}
+}
 void Network::resetDerivativesFromHereOn() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
@@ -129,31 +139,24 @@ void Network::addBiasDerivatives() {
 	}
 }
 
-void Network::applyAllDerivatives(const flt_t eta, const flt_t maxChange) {
-	static auto changeAccordingly = [&eta, &maxChange](Node::Param& paramToChange) {
-		// if the derivative is positive, by decreasing the weight we also decrease the output of the network
-		// otherwise the weight should be increased
-
-		flt_t change = paramToChange.derivative * eta;
-		if (change > 0) {
-			paramToChange.value -= std::min(change, maxChange);
-		} else if (change < 0) {
-			paramToChange.value -= std::max(change, -maxChange);
-		}
-
-		if (paramToChange.value > 1.0)
-			paramToChange.value = 1.0;
-		else if (paramToChange.value < -1.0)
-			paramToChange.value = -1.0;
-	};
-
+void Network::addDerivativesToCostDerivatives() {
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(auto&& node : m_nodes[x]) {
+			node.m_bias.addDerivativeToCostDerivative();
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				changeAccordingly(node.weightFrom(yFrom));
+				node.weightFrom(yFrom).addDerivativeToCostDerivative();
 			}
+		}
+	}
+}
 
-			changeAccordingly(node.m_bias);
+void Network::scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta, const flt_t maxChange) {
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x]) {
+			node.m_bias.scaleAndApplyCostDerivative(numberOfSamples, eta, maxChange);
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				node.weightFrom(yFrom).scaleAndApplyCostDerivative(numberOfSamples, eta, maxChange);
+			}
 		}
 	}
 }
@@ -181,18 +184,26 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	return result;
 }
 
-void Network::train(const std::vector<flt_t>& inputs, const std::vector<flt_t>& expectedOutputs) {
-	updateOutputs<true>(inputs);
-	resetParamDerivatives(); // this allows to use += on derivatives
+void Network::train(const std::vector<Sample>::iterator& samplesBegin, const std::vector<Sample>::iterator& samplesEnd) {
+	resetParamCostDerivatives(); // this allows to use += on cost derivatives
 
-	std::vector<flt_t> outputDeltas;
-	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		genDerivativesFromHereOn(y, m_nodes.back()[y].m_value - expectedOutputs[y]);
-		addWeightDerivatives();
-		addBiasDerivatives();
+	for(auto it = samplesBegin; it != samplesEnd; ++it) {
+		auto& [inputs, expectedOutputs] = *it;
+
+		updateOutputs<true>(inputs);
+		resetParamDerivatives(); // this allows to use += on derivatives
+
+		std::vector<flt_t> outputDeltas;
+		for(size_t y = 0; y != m_nodes.back().size(); ++y) {
+			genDerivativesFromHereOn(y, m_nodes.back()[y].m_value - expectedOutputs[y]);
+			addWeightDerivatives();
+			addBiasDerivatives();
+		}
+
+		addDerivativesToCostDerivatives();
 	}
 
-	applyAllDerivatives(100,0.005);
+	scaleAndApplyCostDerivatives(std::distance(samplesBegin, samplesEnd), 10.1, 0.001);
 }
 
 } /* namespace nn */

@@ -18,11 +18,34 @@ struct Node {
 	struct Param {
 		flt_t value;
 		flt_t derivative = 0;
+		flt_t costDerivative = 0;
 
 		Param(flt_t v) : value{v} {}
 		Param& operator=(flt_t v) { value = v; return *this; }
 
 		inline void resetDerivative() { derivative = 0; }
+		inline void resetCostDerivative() { costDerivative = 0; }
+
+		inline void addDerivativeToCostDerivative() { costDerivative += derivative; }
+
+		inline void scaleAndApplyCostDerivative(const size_t numberOfSamples, const flt_t eta, const flt_t maxChange) {
+			costDerivative /= numberOfSamples;
+			flt_t change = costDerivative * eta;
+
+			// if the costDerivative is positive, by decreasing the weight we also decrease
+			// the cost of the network, otherwise the weight should be increased
+			if (change > 0) {
+				value -= std::min(change, maxChange);
+			} else if (change < 0) {
+				value -= std::max(change, -maxChange);
+			}
+
+			if (value > 1.0)
+				value = 1.0;
+			else if (value < -1.0)
+				value = -1.0;
+		}
+
 		inline operator flt_t() { return value; }
 	};
 
