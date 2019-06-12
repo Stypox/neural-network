@@ -118,11 +118,20 @@ public:
 	std::vector<flt_t> calculate(const std::vector<flt_t>& inputs);
 
 	/**
+	 * @brief the cost function, defined as
+	 *   sumForEverySample( ||outputs-expectedOutputs||^2 ) / (2*numberOfSamples)
+	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
+	 *   for their inputs
+	 * @return the cost of the network
+	 */
+	flt_t cost(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd);
+
+	/**
 	 * @brief trains the network to better perform with the provided samples
-	 * @param [samplesBegin, samplesEnd] the samples containing the expected outputs
+	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 */
-	void train(const std::vector<Sample>::iterator& samplesBegin, const std::vector<Sample>::iterator& samplesEnd);
+	void train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd);
 };
 
 } /* namespace nn */

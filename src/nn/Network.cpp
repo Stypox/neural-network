@@ -125,7 +125,7 @@ void Network::addBiasDerivatives() {
 		db                                                     db
 
 		dO
-		-- = derivativeFromHereOn(O)
+		--  =  derivativeFromHereOn(O)
 		db
 
 		P is the performance, b the bias, O every output node
@@ -184,7 +184,29 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	return result;
 }
 
-void Network::train(const std::vector<Sample>::iterator& samplesBegin, const std::vector<Sample>::iterator& samplesEnd) {
+flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd) {
+	/*
+		           1
+		cost  =  -----  *  accumulateForEverySample( || outputs  -  expectedOutputs ||  ^  2 )
+               2 * n
+
+		                1
+		-->  cost  =  -----  *  accumulateForEverySample( performance( expectedOutputs ) )
+		              2 * n
+	*/
+
+	flt_t accumulatedPerformances = 0.0;
+	for(auto it = samplesBegin; it != samplesEnd; ++it) {
+		auto& [inputs, expectedOutputs] = *it;
+		updateOutputs<false>(inputs);
+
+		accumulatedPerformances += performance(expectedOutputs);
+	}
+
+	return accumulatedPerformances / (2 * std::distance(samplesBegin, samplesEnd));
+}
+
+void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd) {
 	resetParamCostDerivatives(); // this allows to use += on cost derivatives
 
 	for(auto it = samplesBegin; it != samplesEnd; ++it) {
