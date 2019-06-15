@@ -3,13 +3,14 @@
 
 #include <vector>
 #include <ostream>
+#include <functional>
 #include "utils.hpp"
 #include "Node.hpp"
 #include "Sample.hpp"
 
 namespace nn {
 
-class Network {
+class Network { public: // TODO
 	/*
 	   O---------->
 	   |         x
@@ -18,81 +19,61 @@ class Network {
 	   | y
 	   v
 	*/
-	std::vector<std::vector<Node>> m_nodes;
+	std::vector<std::vector<Node>> m_nodes; // m_nodes[x][y] to access a node
 
 	/**
-	 * @brief updates layer (to be called after the inputs have changed)
-	 * @param x layer to update, must be >= 1 (not the inputs layer)
-	 * @tparam training prepare training data in nodes
-	 */
-	template<bool training>
-	void updateLayer(const size_t x);
-	/**
-	 * @brief updates the output layer based on the inputs
+	 * @brief calculates the value of the output nodes based on the inputs
 	 * @param inputs array of inputs of the same length as the first layer of the network
 	 */
-	template<bool training>
-	void updateOutputs(const std::vector<flt_t>& inputs);
+	void feedforward(const std::vector<flt_t>& inputs);
 
 	/**
-	 * @brief calculates the performance of the network based on the info saved in the output nodes
-	 * @param expectedOutputs expected outputs
-	 * @return vectorial distance squared (^2) between the current outputs and the excpected ones
-	 */
-	flt_t performance(const std::vector<flt_t>& expectedOutputs);
-
-	/**
-	 * @brief sets all the `currentCostDerivative`s of the parameters to `0`, so that `+=` can be used.
-	 *   To be called before calculating `currentCostDerivative`.
-	 * @see addWeightDerivatives
-	 * @see addBiasDerivatives
-	 */
-	void resetCurrentCostDerivatives();
-	/**
-	 * @brief sets all the `totalCostDerivative`s of the parameters to `0`, so that `+=` can be used.
-	 *   To be called before calculating `totalCostDerivative`.
-	 * @see addDerivativesToCostDerivatives
-	 */
-	void resetTotalCostDerivatives();
-	/**
-	 * @brief sets all `error`s of the nodes to `0`, so that `+=` can be used.
-	 *   To be called before generating the `error` for every output.
-	 * @see genError
-	 */
-	void resetError();
-
-	/**
-	 * @brief calculates and saves the `error` in each node
-	 * @param consideredOutput y of the considered output node
-	 * @param outputDelta `(actualValue-expectedValue)` of the considered output
-	 */
-	void genError(const size_t consideredOutput, const flt_t outputDelta);
-	/**
-	 * @brief using the `error` saved in the nodes, calculates the cost derivative of the currently
-	 *   considered output over every weight and adds it to the weight's `currentCostDerivative`
-	 */
-	void addWeightDerivatives();
-	/**
-	 * @brief using the `error` saved in the nodes, calculates the cost derivative of the currently
-	 *   considered output over every bias and adds it to the bias' `currentCostDerivative`
-	 */
-	void addBiasDerivatives();
-
-	/**
-	 * @brief adds the `currentCostDerivative` saved in every parameter (for the currently considered set
-	 *   of outputs) to their `totalCostDerivative`.
-	 *   To be called after completing `currentCostDerivative`s' calculations for a sample.
-	 */
-	void addDerivativesToCostDerivatives();
-
-	/**
-	 * @brief scales the `totalCostDerivative` of every parameter by a factor of `1/numberOfSamples`,
-	 *   so that it becomes the average of all considered samples.
-	 *   Then, using the scaled `totalCostDerivative`, changes the parameters' values by `eta*deriv`
-	 * @param numberOfSamples how many samples have been used to calculate the total cost derivative
+	 * @brief trains the network to better perform with the provided samples using
+	 *   the average of the nabla's of all samples
+	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
+	 *   for their inputs
 	 * @param eta learning rate
 	 */
-	void scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta);
+	void trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
+		const std::vector<Sample>::const_iterator& samplesEnd,
+		const flt_t eta);
+
+	/**
+	 * @brief calculates the bias' nabla and the weights' nabla of the sample
+	 * @param sample the sample containing the expected outputs for the inputs
+	 */
+	void backpropagation(const Sample& sample);
+
+
+	/**
+	 * @brief the cost function for the current outputs, defined as
+	 *   `||outputs-expectedOutputs||^2 / 2`
+	 * @param expectedOutputs the expected output for every output node
+	 * @return the cost of the network
+	 */
+	flt_t currentCost(const std::vector<flt_t>& expectedOutputs);
+
+	/**
+	 * @brief calculates the derivative of cost function for the considered output node
+	 * @param actualOutput actual activation of the considered output node
+	 * @param expectedOutput expected activation of the considered output node
+	 * @return derivative of cost function
+	 */
+	flt_t costDerivative(flt_t actualOutput, flt_t expectedOutput);
+
+
+	/**
+	 * @brief applies the stochastic-gradient-descent learning algorithm
+	 *   (only for one epoch)
+	 * @param trainingSamples the samples to train on, containing the
+	 *   expected outputs for their inputs
+	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
+	 * @param eta learning rate
+	 * @see stochasticGradientDescent
+	 */
+	void stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
+		const size_t miniBatchSize,
+		const flt_t eta);
 
 public:
 	/**
@@ -111,20 +92,62 @@ public:
 
 	/**
 	 * @brief the cost function, defined as
-	 *   `sumForEverySample( ||outputs-expectedOutputs||^2 ) / (2*numberOfSamples)`
+	 *   `sumForEverySample( ||outputs-expectedOutputs||^2 / 2 ) / numberOfSamples`
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 * @return the cost of the network
 	 */
-	flt_t cost(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd);
+	flt_t cost(const std::vector<Sample>::const_iterator& samplesBegin,
+		const std::vector<Sample>::const_iterator& samplesEnd);
 
 	/**
-	 * @brief trains the network to better perform with the provided samples
-	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
-	 *   for their inputs
+	 * @brief applies the stochastic-gradient-descent learning algorithm
+	 * @param trainingSamples the samples to train on, containing the
+	 *   expected outputs for their inputs
+	 * @param epochs number of epochs
+	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
 	 * @param eta learning rate
+	 * @see stochasticGradientDescentEpoch
 	 */
-	void train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd, const flt_t eta);
+	void stochasticGradientDescent(std::vector<Sample> trainingSamples,
+		const size_t epochs,
+		const size_t miniBatchSize,
+		const flt_t eta);
+
+	/**
+	 * @brief applies the stochastic-gradient-descent learning algorithm,
+	 *   while also printing network statistics after every epoch
+	 * @param trainingSamples the samples to train on, containing the
+	 *   expected outputs for their inputs
+	 * @param epochs number of epochs
+	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
+	 * @param eta learning rate
+	 * @param testSamples the samples to use for testing, containing the
+	 *   expected outputs for their inputs
+	 * @param out output stream on which to print network statistics
+	 * @param compare function that compares the actual outputs and the expected outputs
+	 *   and returns `true` if they somehow match, otherwise `false`
+	 * @see stochasticGradientDescentEpoch
+	 * @see evaluate
+	 */
+	void stochasticGradientDescent(std::vector<Sample> trainingSamples,
+		const size_t epochs,
+		const size_t miniBatchSize,
+		const flt_t eta,
+		const std::vector<Sample>& testSamples,
+		std::ostream& out,
+		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare);
+	
+	/**
+	 * @brief calculates how many test samples are correctly recognized by the network
+	 * @param testSamples the samples to use for testing, containing the
+	 *   expected outputs for their inputs
+	 * @param compare function that compares the actual outputs and the expected outputs
+	 *   and returns `true` if they somehow match, otherwise `false`
+	 * @return the count of test samples that the network recognises correctly
+	 */
+	size_t evaluate(const std::vector<Sample>& testSamples,
+		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare);
 };
 
 } /* namespace nn */

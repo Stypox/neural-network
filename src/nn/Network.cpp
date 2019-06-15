@@ -1,169 +1,129 @@
-/*
- * Network.cpp
- *
- *  Created on: May 17, 2019
- *      Author: stypox
- */
-
 #include "Network.hpp"
 
 #include <numeric>
 #include <cmath>
+#include <algorithm>
+
+using std::pair;
+using std::vector;
+using vector_iter = vector<nn::Sample>::const_iterator;
 
 namespace nn {
 
-template<bool training>
-void Network::updateLayer(const size_t x) {
-	for(auto&& node : m_nodes[x]) {
-		flt_t sum = 0;
-		for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-			sum +=
-				node.weightFrom(yFrom)
-				* m_nodes[x-1][yFrom].m_value;
-		}
-
-		if constexpr(training) {
-			node.setValueFromSumPrepareTraining(sum);
-		}
-		else {
-			node.setValueFromSum(sum);
+void Network::feedforward(const std::vector<flt_t>& inputs) {
+	for(size_t y = 0; y != m_nodes[0].size(); ++y) {
+		m_nodes[0][y].a = inputs[y]; // TODO consider putting inputs.at(y) or checking size
+	}
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+			m_nodes[x][y].z = m_nodes[x][y].bias;
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x][y].z += m_nodes[x-1][yFrom].a * m_nodes[x][y].weights[yFrom];
+			}
+			m_nodes[x][y].a = sig(m_nodes[x][y].z);
 		}
 	}
 }
-template<bool training>
-void Network::updateOutputs(const std::vector<flt_t>& inputs) {
-	for(size_t y = 0; y != m_nodes.front().size(); ++y)
-		m_nodes[0][y].setValueDirectly(inputs[y]);
-	for(size_t x = 1; x != m_nodes.size(); ++x)
-		updateLayer<training>(x);
+
+void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
+	const std::vector<Sample>::const_iterator& samplesEnd,
+	const flt_t eta) {
+	// reset
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+			m_nodes[x][y].accBiasNabla = 0;
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x][y].accWeightsNabla[yFrom] = 0;
+			}
+		}
+	}
+
+	// accumulate accNablas
+	for(auto s = samplesBegin; s != samplesEnd; ++s) {
+		backpropagation(*s);
+		for(size_t x = 1; x != m_nodes.size(); ++x) {
+			for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+				m_nodes[x][y].accBiasNabla += m_nodes[x][y].error;
+				for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+					m_nodes[x][y].accWeightsNabla[yFrom] += m_nodes[x][y].weightsNabla[yFrom];
+				}
+			}
+		}
+	}
+
+	// apply calculated accNablas
+	flt_t ratio = eta / std::distance(samplesBegin, samplesEnd);
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+			m_nodes[x][y].bias -= m_nodes[x][y].accBiasNabla * ratio;
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x][y].weights[yFrom] -= m_nodes[x][y].accWeightsNabla[yFrom] * ratio;
+			}
+		}
+	}
 }
 
-flt_t Network::performance(const std::vector<flt_t>& expectedOutputs) {
+void Network::backpropagation(const Sample& sample) {
+	// feedforward
+	feedforward(sample.inputs);
+
+	// backpropagation of output layer
+	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
+		m_nodes.back()[y].error = costDerivative(m_nodes.back()[y].a, sample.expectedOutputs[y]) * sigDeriv(m_nodes.back()[y].z);
+		// ^ TODO consider putting sample.expectedOutputs.at(y) or checking size
+
+		for(size_t yFrom = 0; yFrom != m_nodes.end()[-2].size(); ++yFrom) {
+			m_nodes.back()[y].weightsNabla[yFrom] = m_nodes.back()[y].error * m_nodes.end()[-2][yFrom].a;
+		}
+	}
+
+	// backpropagation
+	for(size_t x = m_nodes.size()-2; x != 0; --x) {
+		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+			flt_t sd = sigDeriv(m_nodes[x][y].z);
+
+			m_nodes[x][y].error = 0;
+			for(size_t yTo = 0; yTo != m_nodes[x+1].size(); ++yTo) {
+				m_nodes[x][y].error += m_nodes[x+1][yTo].weights[y] * m_nodes[x+1][yTo].error * sd;
+			}
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x][y].weightsNabla[yFrom] = m_nodes[x][y].error * m_nodes[x-1][yFrom].a;
+			}
+		}
+	}
+}
+
+flt_t Network::costDerivative(flt_t actualOutput, flt_t expectedOutput) {
+	return actualOutput - expectedOutput;
+}
+
+flt_t Network::currentCost(const std::vector<flt_t>& expectedOutputs) {
 	flt_t squaresSum = 0;
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		squaresSum += std::pow(m_nodes.back()[y].m_value-expectedOutputs[y], 2);
+		squaresSum += std::pow(m_nodes.back()[y].a-expectedOutputs[y], 2);
 	}
 
-	return squaresSum;
+	return squaresSum / 2;
 }
 
-void Network::resetCurrentCostDerivatives() {
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			node.m_bias.resetCurrentCostDerivative();
-			for(auto&& weight : node.m_weights) {
-				weight.resetCurrentCostDerivative();
-			}
-		}
-	}
-}
-void Network::resetTotalCostDerivatives() {
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			node.m_bias.resetTotalCostDerivative();
-			for(auto&& weight : node.m_weights) {
-				weight.resetTotalCostDerivative();
-			}
-		}
-	}
-}
-void Network::resetError() {
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			node.m_error = 0;
-		}
+
+void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
+		const size_t miniBatchSize,
+		const flt_t eta) {
+	std::random_shuffle(trainingSamples.begin(), trainingSamples.end());
+	
+	for(size_t start = 0; start < trainingSamples.size(); start += miniBatchSize) {
+		auto beg = trainingSamples.begin() + start;
+		auto end = std::min(beg + miniBatchSize, trainingSamples.end());
+
+		trainMiniBatch(beg, end, eta);
 	}
 }
 
-void Network::genError(const size_t consideredOutput, const flt_t outputDelta) {
-	resetError(); // this allows to use +=
-
-	m_nodes.back()[consideredOutput].m_error =
-			m_nodes.back()[consideredOutput].m_sigDerivValue
-			* outputDelta;
-
-	// ignore input layer; second layer only gets the m_error
-	for(size_t x = m_nodes.size()-1; x != 1; --x) {
-		for(auto&& node : m_nodes[x]) {
-			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				m_nodes[x-1][yFrom].m_error +=
-						m_nodes[x-1][yFrom].m_sigDerivValue
-						* node.m_error
-						* node.weightFrom(yFrom);
-			}
-		}
-	}
-}
-void Network::addWeightDerivatives() {
-	/*
-		dP                                                     dO
-		--  =  accumulateForEveryO( actualMinusExpected(O)  *  -- )
-		dw                                                     dw
-
-		dO
-		--  =  nodeBeforeWeightValue(w)  *  error(O)
-		dw
-
-		P is the performance, w the weight, O every output node
-		every actualMinusExpected(O)*dO/dw can be calculated separately and summed
-	*/
-
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				node.weightFrom(yFrom).currentCostDerivative +=
-						node.m_error
-						* m_nodes[x-1][yFrom].m_value;
-			}
-		}
-	}
-}
-void Network::addBiasDerivatives() {
-	/*
-		dP                                                     dO
-		--  =  accumulateForEveryO( actualMinusExpected(O)  *  -- )
-		db                                                     db
-
-		dO
-		--  =  error(O)
-		db
-
-		P is the performance, b the bias, O every output node
-		every actualMinusExpected(O)*dO/db can be calculated separately and summed
-	*/
-
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			node.m_bias.currentCostDerivative += node.m_error;
-		}
-	}
-}
-
-void Network::addDerivativesToCostDerivatives() {
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			node.m_bias.addDerivativeToCostDerivative();
-			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				node.weightFrom(yFrom).addDerivativeToCostDerivative();
-			}
-		}
-	}
-}
-
-void Network::scaleAndApplyCostDerivatives(const size_t numberOfSamples, const flt_t eta) {
-	for(size_t x = 1; x != m_nodes.size(); ++x) {
-		for(auto&& node : m_nodes[x]) {
-			node.m_bias.scaleAndApplyCostDerivative(numberOfSamples, eta);
-			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				node.weightFrom(yFrom).scaleAndApplyCostDerivative(numberOfSamples, eta);
-			}
-		}
-	}
-}
 
 Network::Network(const std::initializer_list<size_t>& dimensions) {
 	m_nodes.push_back({});
-	for(size_t y = 0; y != *(dimensions.end()-1); ++y) {
+	for(size_t y = 0; y != dimensions.begin()[0]; ++y) {
 		// inputs have no input-connections
 		m_nodes.back().push_back(Node{0});
 	}
@@ -172,16 +132,52 @@ Network::Network(const std::initializer_list<size_t>& dimensions) {
 		m_nodes.push_back({});
 		for(size_t y = 0; y != dimensions.begin()[x]; ++y) {
 			m_nodes.back().push_back(Node{dimensions.begin()[x-1]});
+			m_nodes.back().back().bias = random();
+			for(size_t yFrom = 0; yFrom != dimensions.begin()[x-1]; ++yFrom) {
+				m_nodes.back().back().weights[yFrom] = random();
+			}
 		}
 	}
 }
 
 std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
-	updateOutputs<false>(inputs);
+	feedforward(inputs);
 	std::vector<flt_t> result;
 	for(size_t i = 0; i != m_nodes.back().size(); ++i)
-		result.push_back(m_nodes.back()[i].m_value);
+		result.push_back(m_nodes.back()[i].a);
 	return result;
+}
+
+void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
+		const size_t epochs,
+		const size_t miniBatchSize,
+		const flt_t eta) {
+	for(size_t e = 0; e != epochs; ++e) {
+		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta);
+	}
+}
+
+void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
+		const size_t epochs,
+		const size_t miniBatchSize,
+		const flt_t eta,
+		const std::vector<Sample>& testSamples,
+		std::ostream& out,
+		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
+	for(size_t e = 0; e != epochs; ++e) {
+		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta);
+		out << "Epoch " << e+1 << " : " << evaluate(testSamples, compare) << "/" << testSamples.size() << "\n";
+	}
+}
+
+size_t Network::evaluate(const std::vector<Sample>& testSamples,
+		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
+	size_t correct = 0;
+	for(auto&& sample : testSamples) {
+		std::vector<flt_t> actualOutputs = calculate(sample.inputs);
+		correct += compare(sample.expectedOutputs, actualOutputs);
+	}
+	return correct;
 }
 
 flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd) {
@@ -198,34 +194,12 @@ flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, con
 	flt_t accumulatedPerformances = 0.0;
 	for(auto it = samplesBegin; it != samplesEnd; ++it) {
 		auto& [inputs, expectedOutputs] = *it;
-		updateOutputs<false>(inputs);
+		feedforward(inputs);
 
-		accumulatedPerformances += performance(expectedOutputs);
+		accumulatedPerformances += currentCost(expectedOutputs);
 	}
 
-	return accumulatedPerformances / (2 * std::distance(samplesBegin, samplesEnd));
-}
-
-void Network::train(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd, const flt_t eta) {
-	resetTotalCostDerivatives(); // this allows to use `+=` on `totalCostDerivative`s
-
-	for(auto it = samplesBegin; it != samplesEnd; ++it) {
-		auto& [inputs, expectedOutputs] = *it;
-
-		updateOutputs<true>(inputs);
-		resetCurrentCostDerivatives(); // this allows to use `+=` on `currentCostDerivative`s
-
-		std::vector<flt_t> outputDeltas;
-		for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-			genError(y, m_nodes.back()[y].m_value - expectedOutputs[y]);
-			addWeightDerivatives();
-			addBiasDerivatives();
-		}
-
-		addDerivativesToCostDerivatives();
-	}
-
-	scaleAndApplyCostDerivatives(std::distance(samplesBegin, samplesEnd), eta);
+	return accumulatedPerformances / std::distance(samplesBegin, samplesEnd);
 }
 
 } /* namespace nn */
