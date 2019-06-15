@@ -5,7 +5,7 @@ namespace nn {
 	using flt_t = float;
 
 	flt_t random();
-	flt_t sig(flt_t x);
+	flt_t sig(flt_t x); // consider renaming
 	flt_t sigDeriv(flt_t x);
 }
 
