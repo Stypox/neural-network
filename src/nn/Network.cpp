@@ -166,7 +166,7 @@ void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
 	for(size_t e = 0; e != epochs; ++e) {
 		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta);
-		out << "Epoch " << e+1 << " : " << evaluate(testSamples, compare) << "/" << testSamples.size() << "\n";
+		out << "Epoch " << e+1 << ": " << evaluate(testSamples, compare) << " / " << testSamples.size() << "\n";
 	}
 }
 
@@ -200,6 +200,46 @@ flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, con
 	}
 
 	return accumulatedPerformances / std::distance(samplesBegin, samplesEnd);
+}
+
+std::istream& operator>>(std::istream& in, Network& network) {
+	size_t xSize;
+	in >> xSize;
+	network.m_nodes.resize(xSize, std::vector<Node>{});
+
+	// input layer has no parameter
+	size_t ySize;
+	in >> ySize;
+	for(size_t y = 0; y != ySize; ++y) {
+		// inputs have no input-connections
+		network.m_nodes[0].push_back(Node{0});
+	}	
+
+	for(size_t x = 1; x != xSize; ++x) {
+		in >> ySize;
+		for(size_t y = 0; y != ySize; ++y) {
+			network.m_nodes[x].push_back(Node{0});
+			in >> network.m_nodes[x].back();
+		}
+	}
+
+	return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const Network& network) {
+	out << network.m_nodes.size() << " ";
+
+	// input layer has no parameter
+	out << network.m_nodes[0].size() << " ";
+
+	for(size_t x = 1; x != network.m_nodes.size(); ++x) {
+		out << network.m_nodes[x].size() << " ";
+		for(size_t y = 0; y != network.m_nodes[x].size(); ++y) {
+			out << network.m_nodes[x][y];
+		}
+	}
+
+	return out;
 }
 
 } /* namespace nn */

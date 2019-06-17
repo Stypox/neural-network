@@ -2,6 +2,7 @@
 #define _NN_NETWORK_HPP_
 
 #include <vector>
+#include <istream>
 #include <ostream>
 #include <functional>
 #include "utils.hpp"
@@ -84,6 +85,12 @@ public:
 	Network(const std::initializer_list<size_t>& dimensions);
 
 	/**
+	 * @brief Construct an empty Network object
+	 * @see operator>>
+	 */
+	Network() = default;
+
+	/**
 	 * @brief calculates the output of the network based on the provided inputs
 	 * @param inputs array of inputs of the same length as the first layer of the network
 	 * @return the values of the output nodes
@@ -148,6 +155,22 @@ public:
 	 */
 	size_t evaluate(const std::vector<Sample>& testSamples,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare);
+	
+	/**
+	 * @brief read network parameters from an input stream
+	 * @param in input stream
+	 * @param network the network to save the parameters in
+	 * @return in
+	 */
+	friend std::istream& operator>>(std::istream& in, Network& network);
+
+	/**
+	 * @brief write network parameters to an output stream
+	 * @param out output stream
+	 * @param network the network to write
+	 * @return out
+	 */
+	friend std::ostream& operator<<(std::ostream& out, const Network& network);
 };
 
 } /* namespace nn */

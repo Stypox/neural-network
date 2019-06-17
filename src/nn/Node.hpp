@@ -2,6 +2,7 @@
 #define _NN_NODE_HPP_
 
 #include <vector>
+#include <istream>
 #include <ostream>
 #include "utils.hpp"
 
@@ -21,6 +22,9 @@ struct Node {
 	std::vector<flt_t> accWeightsNabla; // remove this?
 
 	Node(size_t inputCount);
+
+	friend std::istream& operator>>(std::istream& in, Node& node);
+	friend std::ostream& operator<<(std::ostream& out, const Node& node);
 };
 
 } /* namespace nn */
