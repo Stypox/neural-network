@@ -33,17 +33,20 @@ class Network { public: // TODO
 
 	/**
 	 * @brief trains the network to better perform with the provided samples using
-	 *   the average of the nabla's of all samples
+	 *   the average of the nabla's of all samples and the "velocity" of every node
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 * @param eta learning rate
 	 * @param weightDecayFactor `1 - eta * regularizationParameter / n` where `n` is the
 	 *   number of all training samples (not the size of the mini batch)
+	 * @param momentumCoefficient factor to scale the "velocity" of the parameter by,
+	 *   every iteration. Set to 0 to run exactly as standard stochastic-gradient-descent.
 	 */
-	void SGDMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
+	void momentumSGDMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
 		const std::vector<Sample>::const_iterator& samplesEnd,
 		const flt_t eta,
-		const flt_t weightDecayFactor);
+		const flt_t weightDecayFactor,
+		const flt_t momentumCoefficient);
 
 	/**
 	 * @brief calculates the bias' nabla and the weights' nabla of the sample
@@ -53,7 +56,7 @@ class Network { public: // TODO
 
 
 	/**
-	 * @brief applies the stochastic-gradient-descent learning algorithm
+	 * @brief applies the momentum-based stochastic-gradient-descent learning algorithm
 	 *   (only for one epoch)
 	 * @param trainingSamples the samples to train on, containing the
 	 *   expected outputs for their inputs
@@ -61,12 +64,15 @@ class Network { public: // TODO
 	 * @param eta learning rate
 	 * @param regularizationParameter how much the weights should be prevented from
 	 *   becoming big. Set to 0 if no regularization is wanted.
+	 * @param momentumCoefficient factor to scale the "velocity" of the parameter by,
+	 *   every iteration. Set to 0 to run exactly as standard stochastic-gradient-descent.
 	 * @see stochasticGradientDescent
 	 */
-	void SGDEpoch(std::vector<Sample>& trainingSamples,
+	void momentumSGDEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
 		const flt_t eta,
-		const flt_t regularizationParameter);
+		const flt_t regularizationParameter,
+		const flt_t momentumCoefficient);
 
 public:
 	/**
@@ -124,6 +130,36 @@ public:
 		const size_t miniBatchSize,
 		const flt_t eta,
 		const flt_t regularizationParameter,
+		const std::vector<Sample>& testSamples,
+		std::ostream& out,
+		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare);
+
+	/**
+	 * @brief applies the momentum-based stochastic-gradient-descent learning algorithm,
+	 *   while also printing network statistics after every epoch
+	 * @param trainingSamples the samples to train on, containing the
+	 *   expected outputs for their inputs
+	 * @param epochs number of epochs
+	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
+	 * @param eta learning rate
+	 * @param regularizationParameter how much the weights should be prevented from
+	 *   becoming big. Set to 0 if no regularization is wanted.
+	 * @param momentumCoefficient factor to scale the "velocity" of the parameter by,
+	 *   every iteration. Set to 0 to run exactly as standard stochastic-gradient-descent.
+	 * @param testSamples the samples to use for testing, containing the
+	 *   expected outputs for their inputs
+	 * @param out output stream on which to print network statistics
+	 * @param compare function that compares the actual outputs and the expected outputs
+	 *   and returns `true` if they somehow match, otherwise `false`
+	 * @see stochasticGradientDescentEpoch
+	 * @see evaluate
+	 */
+	void momentumSGD(std::vector<Sample> trainingSamples,
+		const size_t epochs,
+		const size_t miniBatchSize,
+		const flt_t eta,
+		const flt_t regularizationParameter,
+		const flt_t momentumCoefficient,
 		const std::vector<Sample>& testSamples,
 		std::ostream& out,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare);

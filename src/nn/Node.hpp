@@ -21,6 +21,10 @@ struct Node {
 	flt_t accBiasNabla;
 	std::vector<flt_t> accWeightsNabla; // remove this?
 
+	// velocities
+	flt_t biasVelocity;
+	std::vector<flt_t> weightsVelocity;
+
 	Node(size_t inputCount);
 
 	friend std::istream& operator>>(std::istream& in, Node& node);

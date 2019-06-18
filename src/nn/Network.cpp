@@ -26,10 +26,11 @@ void Network::feedforward(const std::vector<flt_t>& inputs) {
 	}
 }
 
-void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
+void Network::momentumSGDMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
 		const std::vector<Sample>::const_iterator& samplesEnd,
 		const flt_t eta,
-		const flt_t weightDecayFactor) {
+		const flt_t weightDecayFactor,
+		const flt_t momentumCoefficient) {
 	// reset
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
@@ -53,17 +54,30 @@ void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesB
 		}
 	}
 
-
-	// apply calculated accNablas
+	// apply calculated accNablas to velocities
 	size_t m = std::distance(samplesBegin, samplesEnd); // mini batch size
 	flt_t etaScaled = eta / m;
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
-			m_nodes[x][y].bias -= m_nodes[x][y].accBiasNabla * etaScaled;
+			m_nodes[x][y].biasVelocity =
+				momentumCoefficient * m_nodes[x][y].biasVelocity -
+				etaScaled * m_nodes[x][y].accBiasNabla;
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x][y].weightsVelocity[yFrom] = 
+					momentumCoefficient * m_nodes[x][y].weightsVelocity[yFrom] -
+					etaScaled * m_nodes[x][y].accWeightsNabla[yFrom];
+			}
+		}
+	}
+
+	// apply calculated velocities to weights
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+			m_nodes[x][y].bias += m_nodes[x][y].biasVelocity;
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
 				m_nodes[x][y].weights[yFrom] = 
-					m_nodes[x][y].weights[yFrom] * weightDecayFactor -
-					m_nodes[x][y].accWeightsNabla[yFrom] * etaScaled;
+					weightDecayFactor * m_nodes[x][y].weights[yFrom] +
+					m_nodes[x][y].weightsVelocity[yFrom];
 			}
 		}
 	}
@@ -100,10 +114,21 @@ void Network::backpropagation(const Sample& sample) {
 }
 
 
-void Network::SGDEpoch(std::vector<Sample>& trainingSamples,
+void Network::momentumSGDEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
 		const flt_t eta,
-		const flt_t regularizationParameter) {
+		const flt_t regularizationParameter,
+		const flt_t momentumCoefficient) {
+	// reset velocities
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
+			m_nodes[x][y].biasVelocity = 0;
+			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
+				m_nodes[x][y].weightsVelocity[yFrom] = 0;
+			}
+		}
+	}
+	
 	std::random_shuffle(trainingSamples.begin(), trainingSamples.end());
 	
 	flt_t weightDecayFactor = (1 - eta * regularizationParameter / trainingSamples.size());
@@ -111,7 +136,7 @@ void Network::SGDEpoch(std::vector<Sample>& trainingSamples,
 		auto beg = trainingSamples.begin() + start;
 		auto end = std::min(beg + miniBatchSize, trainingSamples.end());
 
-		SGDMiniBatch(beg, end, eta, weightDecayFactor);
+		momentumSGDMiniBatch(beg, end, eta, weightDecayFactor, momentumCoefficient);
 	}
 }
 
@@ -157,11 +182,23 @@ void Network::SGD(std::vector<Sample> trainingSamples,
 		const std::vector<Sample>& testSamples,
 		std::ostream& out,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
+	momentumSGD(trainingSamples, epochs, miniBatchSize, eta, regularizationParameter, 0.0f, testSamples, out, compare);
+}
+
+void Network::momentumSGD(std::vector<Sample> trainingSamples,
+		const size_t epochs,
+		const size_t miniBatchSize,
+		const flt_t eta,
+		const flt_t regularizationParameter,
+		const flt_t momentumCoefficient,
+		const std::vector<Sample>& testSamples,
+		std::ostream& out,
+		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
 	out << "Before " << std::setw(std::log10(epochs+1)) << "" <<
 		"  -  Accuracy: " << std::setw(std::log10(testSamples.size()) + 1) << evaluate(testSamples, compare) << " / " << testSamples.size() <<
 		"  -  Cost: " << cost(testSamples, regularizationParameter) << "\n";
 	for(size_t e = 0; e != epochs; ++e) {
-		SGDEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
+		momentumSGDEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter, momentumCoefficient);
 		out << "Epoch " << std::setw(std::log10(epochs+1) + 1) << e+1 <<
 			"  -  Accuracy: " << std::setw(std::log10(testSamples.size()) + 1) << evaluate(testSamples, compare) << " / " << testSamples.size() <<
 			"  -  Cost: " << cost(testSamples, regularizationParameter) << "\n";
