@@ -4,11 +4,10 @@
 
 namespace nn {
 
-	flt_t random() {
+	flt_t random(flt_t standardDeviation) {
 		static std::random_device rd;
 		static std::mt19937 engine{rd()};
-		static std::normal_distribution<> dist;
-		return dist(engine);
+		return std::normal_distribution{(flt_t)0.0, standardDeviation}(engine);
 	}
 	flt_t sig(flt_t x) {
 		if (x > 0)

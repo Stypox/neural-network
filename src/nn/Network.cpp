@@ -137,9 +137,11 @@ Network::Network(const std::initializer_list<size_t>& dimensions,
 		m_nodes.push_back({});
 		for(size_t y = 0; y != dimensions.begin()[x]; ++y) {
 			m_nodes.back().push_back(Node{dimensions.begin()[x-1]});
-			m_nodes.back().back().bias = random();
+			m_nodes.back().back().bias = random(1);
+
+			flt_t standardDeviation = 1.0 / std::sqrt(dimensions.begin()[x-1]);
 			for(size_t yFrom = 0; yFrom != dimensions.begin()[x-1]; ++yFrom) {
-				m_nodes.back().back().weights[yFrom] = random();
+				m_nodes.back().back().weights[yFrom] = random(standardDeviation);
 			}
 		}
 	}
