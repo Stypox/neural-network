@@ -26,8 +26,9 @@ void Network::feedforward(const std::vector<flt_t>& inputs) {
 }
 
 void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
-	const std::vector<Sample>::const_iterator& samplesEnd,
-	const flt_t eta) {
+		const std::vector<Sample>::const_iterator& samplesEnd,
+		const flt_t eta,
+		const flt_t regularizationParameter) {
 	// reset
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
@@ -51,13 +52,16 @@ void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesB
 		}
 	}
 
+
 	// apply calculated accNablas
-	flt_t ratio = eta / std::distance(samplesBegin, samplesEnd);
+	size_t n = std::distance(samplesBegin, samplesEnd);
+	flt_t etaScaled = eta / n;
+	flt_t regularizationScaled = regularizationParameter / n;
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
-			m_nodes[x][y].bias -= m_nodes[x][y].accBiasNabla * ratio;
+			m_nodes[x][y].bias -= m_nodes[x][y].accBiasNabla * etaScaled;
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				m_nodes[x][y].weights[yFrom] -= m_nodes[x][y].accWeightsNabla[yFrom] * ratio;
+				m_nodes[x][y].weights[yFrom] -= m_nodes[x][y].accWeightsNabla[yFrom] * etaScaled + regularizationScaled;
 			}
 		}
 	}
@@ -105,14 +109,15 @@ flt_t Network::currentCost(const std::vector<flt_t>& expectedOutputs) {
 
 void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
-		const flt_t eta) {
+		const flt_t eta,
+		const flt_t regularizationParameter) {
 	std::random_shuffle(trainingSamples.begin(), trainingSamples.end());
 	
 	for(size_t start = 0; start < trainingSamples.size(); start += miniBatchSize) {
 		auto beg = trainingSamples.begin() + start;
 		auto end = std::min(beg + miniBatchSize, trainingSamples.end());
 
-		trainMiniBatch(beg, end, eta);
+		trainMiniBatch(beg, end, eta, regularizationParameter);
 	}
 }
 
@@ -152,9 +157,10 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
 		const size_t epochs,
 		const size_t miniBatchSize,
-		const flt_t eta) {
+		const flt_t eta,
+		const flt_t regularizationParameter) {
 	for(size_t e = 0; e != epochs; ++e) {
-		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta);
+		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
 	}
 }
 
@@ -162,11 +168,12 @@ void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
 		const size_t epochs,
 		const size_t miniBatchSize,
 		const flt_t eta,
+		const flt_t regularizationParameter,
 		const std::vector<Sample>& testSamples,
 		std::ostream& out,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
 	for(size_t e = 0; e != epochs; ++e) {
-		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta);
+		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
 		out << "Epoch " << e+1 << ": " << evaluate(testSamples, compare) << " / " << testSamples.size() << "\n";
 	}
 }

@@ -43,10 +43,13 @@ class Network { public: // TODO
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 * @param eta learning rate
+	 * @param regularizationParameter how much the weights should be prevented from
+	 *   becoming big. Set to 0 if no regularization is wanted.
 	 */
 	void trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
 		const std::vector<Sample>::const_iterator& samplesEnd,
-		const flt_t eta);
+		const flt_t eta,
+		const flt_t regularizationParameter);
 
 	/**
 	 * @brief calculates the bias' nabla and the weights' nabla of the sample
@@ -71,11 +74,14 @@ class Network { public: // TODO
 	 *   expected outputs for their inputs
 	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
 	 * @param eta learning rate
+	 * @param regularizationParameter how much the weights should be prevented from
+	 *   becoming big. Set to 0 if no regularization is wanted.
 	 * @see stochasticGradientDescent
 	 */
 	void stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
-		const flt_t eta);
+		const flt_t eta,
+		const flt_t regularizationParameter);
 
 public:
 	/**
@@ -122,12 +128,15 @@ public:
 	 * @param epochs number of epochs
 	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
 	 * @param eta learning rate
+	 * @param regularizationParameter how much the weights should be prevented from
+	 *   becoming big. Set to 0 if no regularization is wanted.
 	 * @see stochasticGradientDescentEpoch
 	 */
 	void stochasticGradientDescent(std::vector<Sample> trainingSamples,
 		const size_t epochs,
 		const size_t miniBatchSize,
-		const flt_t eta);
+		const flt_t eta,
+		const flt_t regularizationParameter);
 
 	/**
 	 * @brief applies the stochastic-gradient-descent learning algorithm,
@@ -137,6 +146,8 @@ public:
 	 * @param epochs number of epochs
 	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
 	 * @param eta learning rate
+	 * @param regularizationParameter how much the weights should be prevented from
+	 *   becoming big. Set to 0 if no regularization is wanted.
 	 * @param testSamples the samples to use for testing, containing the
 	 *   expected outputs for their inputs
 	 * @param out output stream on which to print network statistics
@@ -149,6 +160,7 @@ public:
 		const size_t epochs,
 		const size_t miniBatchSize,
 		const flt_t eta,
+		const flt_t regularizationParameter,
 		const std::vector<Sample>& testSamples,
 		std::ostream& out,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare);
