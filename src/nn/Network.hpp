@@ -40,7 +40,7 @@ class Network { public: // TODO
 	 * @param weightDecayFactor `1 - eta * regularizationParameter / n` where `n` is the
 	 *   number of all training samples (not the size of the mini batch)
 	 */
-	void trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
+	void SGDMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
 		const std::vector<Sample>::const_iterator& samplesEnd,
 		const flt_t eta,
 		const flt_t weightDecayFactor);
@@ -63,7 +63,7 @@ class Network { public: // TODO
 	 *   becoming big. Set to 0 if no regularization is wanted.
 	 * @see stochasticGradientDescent
 	 */
-	void stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
+	void SGDEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
 		const flt_t eta,
 		const flt_t regularizationParameter);
@@ -102,23 +102,6 @@ public:
 	flt_t cost(const std::vector<Sample>& samples, flt_t regularizationParameter);
 
 	/**
-	 * @brief applies the stochastic-gradient-descent learning algorithm
-	 * @param trainingSamples the samples to train on, containing the
-	 *   expected outputs for their inputs
-	 * @param epochs number of epochs
-	 * @param miniBatchSize size of the batch of samples to use for the gradient descent
-	 * @param eta learning rate
-	 * @param regularizationParameter how much the weights should be prevented from
-	 *   becoming big. Set to 0 if no regularization is wanted.
-	 * @see stochasticGradientDescentEpoch
-	 */
-	void stochasticGradientDescent(std::vector<Sample> trainingSamples,
-		const size_t epochs,
-		const size_t miniBatchSize,
-		const flt_t eta,
-		const flt_t regularizationParameter);
-
-	/**
 	 * @brief applies the stochastic-gradient-descent learning algorithm,
 	 *   while also printing network statistics after every epoch
 	 * @param trainingSamples the samples to train on, containing the
@@ -136,7 +119,7 @@ public:
 	 * @see stochasticGradientDescentEpoch
 	 * @see evaluate
 	 */
-	void stochasticGradientDescent(std::vector<Sample> trainingSamples,
+	void SGD(std::vector<Sample> trainingSamples,
 		const size_t epochs,
 		const size_t miniBatchSize,
 		const flt_t eta,

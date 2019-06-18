@@ -100,7 +100,7 @@ void Network::backpropagation(const Sample& sample) {
 }
 
 
-void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
+void Network::SGDEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
 		const flt_t eta,
 		const flt_t regularizationParameter) {
@@ -111,7 +111,7 @@ void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSample
 		auto beg = trainingSamples.begin() + start;
 		auto end = std::min(beg + miniBatchSize, trainingSamples.end());
 
-		trainMiniBatch(beg, end, eta, weightDecayFactor);
+		SGDMiniBatch(beg, end, eta, weightDecayFactor);
 	}
 }
 
@@ -149,17 +149,7 @@ std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	return result;
 }
 
-void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
-		const size_t epochs,
-		const size_t miniBatchSize,
-		const flt_t eta,
-		const flt_t regularizationParameter) {
-	for(size_t e = 0; e != epochs; ++e) {
-		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
-	}
-}
-
-void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
+void Network::SGD(std::vector<Sample> trainingSamples,
 		const size_t epochs,
 		const size_t miniBatchSize,
 		const flt_t eta,
@@ -171,7 +161,7 @@ void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
 		"  -  Accuracy: " << std::setw(std::log10(testSamples.size()) + 1) << evaluate(testSamples, compare) << " / " << testSamples.size() <<
 		"  -  Cost: " << cost(testSamples, regularizationParameter) << "\n";
 	for(size_t e = 0; e != epochs; ++e) {
-		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
+		SGDEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
 		out << "Epoch " << std::setw(std::log10(epochs+1) + 1) << e+1 <<
 			"  -  Accuracy: " << std::setw(std::log10(testSamples.size()) + 1) << evaluate(testSamples, compare) << " / " << testSamples.size() <<
 			"  -  Cost: " << cost(testSamples, regularizationParameter) << "\n";
