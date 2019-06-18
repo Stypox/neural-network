@@ -28,7 +28,7 @@ void Network::feedforward(const std::vector<flt_t>& inputs) {
 void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
 		const std::vector<Sample>::const_iterator& samplesEnd,
 		const flt_t eta,
-		const flt_t regularizationParameter) {
+		const flt_t weightDecayFactor) {
 	// reset
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
@@ -54,14 +54,15 @@ void Network::trainMiniBatch(const std::vector<Sample>::const_iterator& samplesB
 
 
 	// apply calculated accNablas
-	size_t n = std::distance(samplesBegin, samplesEnd);
-	flt_t etaScaled = eta / n;
-	flt_t regularizationScaled = regularizationParameter / n;
+	size_t m = std::distance(samplesBegin, samplesEnd); // mini batch size
+	flt_t etaScaled = eta / m;
 	for(size_t x = 1; x != m_nodes.size(); ++x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
 			m_nodes[x][y].bias -= m_nodes[x][y].accBiasNabla * etaScaled;
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				m_nodes[x][y].weights[yFrom] -= m_nodes[x][y].accWeightsNabla[yFrom] * etaScaled + regularizationScaled;
+				m_nodes[x][y].weights[yFrom] = 
+					m_nodes[x][y].weights[yFrom] * weightDecayFactor -
+					m_nodes[x][y].accWeightsNabla[yFrom] * etaScaled;
 			}
 		}
 	}
@@ -113,11 +114,12 @@ void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSample
 		const flt_t regularizationParameter) {
 	std::random_shuffle(trainingSamples.begin(), trainingSamples.end());
 	
+	flt_t weightDecayFactor = (1 - eta * regularizationParameter / trainingSamples.size());
 	for(size_t start = 0; start < trainingSamples.size(); start += miniBatchSize) {
 		auto beg = trainingSamples.begin() + start;
 		auto end = std::min(beg + miniBatchSize, trainingSamples.end());
 
-		trainMiniBatch(beg, end, eta, regularizationParameter);
+		trainMiniBatch(beg, end, eta, weightDecayFactor);
 	}
 }
 

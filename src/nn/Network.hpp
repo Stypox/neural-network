@@ -43,13 +43,13 @@ class Network { public: // TODO
 	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
 	 *   for their inputs
 	 * @param eta learning rate
-	 * @param regularizationParameter how much the weights should be prevented from
-	 *   becoming big. Set to 0 if no regularization is wanted.
+	 * @param weightDecayFactor `1 - eta * regularizationParameter / n` where `n` is the
+	 *   number of all training samples (not the size of the mini batch)
 	 */
 	void trainMiniBatch(const std::vector<Sample>::const_iterator& samplesBegin,
 		const std::vector<Sample>::const_iterator& samplesEnd,
 		const flt_t eta,
-		const flt_t regularizationParameter);
+		const flt_t weightDecayFactor);
 
 	/**
 	 * @brief calculates the bias' nabla and the weights' nabla of the sample
