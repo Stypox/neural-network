@@ -23,6 +23,15 @@ class Network { public: // TODO
 	std::vector<std::vector<Node>> m_nodes; // m_nodes[x][y] to access a node
 
 	/**
+	 * @brief calculates the derivative of cost function for the considered output node
+	 * @param z weighted sum + bias of the considered node's inputs
+	 * @param a actual activation of the considered output node
+	 * @param y expected activation of the considered output node
+	 * @return derivative of cost function
+	 */
+	flt_t(*m_costDerivative)(flt_t, flt_t, flt_t);
+
+	/**
 	 * @brief calculates the value of the output nodes based on the inputs
 	 * @param inputs array of inputs of the same length as the first layer of the network
 	 */
@@ -54,15 +63,6 @@ class Network { public: // TODO
 	 */
 	flt_t currentCost(const std::vector<flt_t>& expectedOutputs);
 
-	/**
-	 * @brief calculates the derivative of cost function for the considered output node
-	 * @param z weighted sum + bias of the considered node's inputs
-	 * @param a actual activation of the considered output node
-	 * @param y expected activation of the considered output node
-	 * @return derivative of cost function
-	 */
-	flt_t costDerivative(flt_t z, flt_t a, flt_t y);
-
 
 	/**
 	 * @brief applies the stochastic-gradient-descent learning algorithm
@@ -82,14 +82,21 @@ public:
 	 * @brief constructs a fully-connected neural network
 	 *   All parameters' values are randomly initialized with normal distribution
 	 * @param dimensions the length of every layer of nodes
+	 * @param costDerivative cost derivative function that takes (z, a, y) as inputs
+	 *   and returns the derivative
+	 * @see m_costDerivative
 	 */
-	Network(const std::initializer_list<size_t>& dimensions);
+	Network(const std::initializer_list<size_t>& dimensions,
+		flt_t(*costDerivative)(flt_t, flt_t, flt_t) = [](flt_t z, flt_t a, flt_t y) { return (a-y) * sigDeriv(z); });
 
 	/**
-	 * @brief Construct an empty Network object
+	 * @brief constructs an empty neural network
+	 * @param costDerivative cost derivative function that takes (z, a, y) as inputs
+	 *   and returns the derivative
+	 * @see m_costDerivative
 	 * @see operator>>
 	 */
-	Network() = default;
+	Network(flt_t(*costDerivative)(flt_t, flt_t, flt_t) = [](flt_t z, flt_t a, flt_t y) { return (a-y) * sigDeriv(z); });
 
 	/**
 	 * @brief calculates the output of the network based on the provided inputs

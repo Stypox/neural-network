@@ -69,7 +69,7 @@ void Network::backpropagation(const Sample& sample) {
 
 	// backpropagation of output layer
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		m_nodes.back()[y].error = costDerivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y]);
+		m_nodes.back()[y].error = m_costDerivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y]);
 		// ^ TODO consider putting sample.expectedOutputs.at(y) or checking size
 
 		for(size_t yFrom = 0; yFrom != m_nodes.end()[-2].size(); ++yFrom) {
@@ -91,10 +91,6 @@ void Network::backpropagation(const Sample& sample) {
 			}
 		}
 	}
-}
-
-flt_t Network::costDerivative(flt_t z, flt_t a, flt_t y) {
-	return (a - y) * sigDeriv(z);
 }
 
 flt_t Network::currentCost(const std::vector<flt_t>& expectedOutputs) {
@@ -121,7 +117,9 @@ void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSample
 }
 
 
-Network::Network(const std::initializer_list<size_t>& dimensions) {
+Network::Network(const std::initializer_list<size_t>& dimensions,
+		flt_t(*costDerivative)(flt_t, flt_t, flt_t)) :
+		m_nodes{}, m_costDerivative{costDerivative} {
 	m_nodes.push_back({});
 	for(size_t y = 0; y != dimensions.begin()[0]; ++y) {
 		// inputs have no input-connections
@@ -139,6 +137,9 @@ Network::Network(const std::initializer_list<size_t>& dimensions) {
 		}
 	}
 }
+
+Network::Network(flt_t(*costDerivative)(flt_t, flt_t, flt_t)) :
+		m_nodes{}, m_costDerivative{costDerivative} {}
 
 std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	feedforward(inputs);
