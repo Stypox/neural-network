@@ -3,6 +3,7 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm>
+#include <iomanip>
 
 using std::pair;
 using std::vector;
@@ -74,7 +75,7 @@ void Network::backpropagation(const Sample& sample) {
 
 	// backpropagation of output layer
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		m_nodes.back()[y].error = m_costDerivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y]);
+		m_nodes.back()[y].error = m_costFunction.derivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y]);
 		// ^ TODO consider putting sample.expectedOutputs.at(y) or checking size
 
 		for(size_t yFrom = 0; yFrom != m_nodes.end()[-2].size(); ++yFrom) {
@@ -98,15 +99,6 @@ void Network::backpropagation(const Sample& sample) {
 	}
 }
 
-flt_t Network::currentCost(const std::vector<flt_t>& expectedOutputs) {
-	flt_t squaresSum = 0;
-	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		squaresSum += std::pow(m_nodes.back()[y].a-expectedOutputs[y], 2);
-	}
-
-	return squaresSum / 2;
-}
-
 
 void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSamples,
 		const size_t miniBatchSize,
@@ -124,9 +116,8 @@ void Network::stochasticGradientDescentEpoch(std::vector<Sample>& trainingSample
 }
 
 
-Network::Network(const std::initializer_list<size_t>& dimensions,
-		flt_t(*costDerivative)(flt_t, flt_t, flt_t)) :
-		m_nodes{}, m_costDerivative{costDerivative} {
+Network::Network(const std::initializer_list<size_t>& dimensions, CostFunction& costFunction) :
+		m_nodes{}, m_costFunction{costFunction} {
 	m_nodes.push_back({});
 	for(size_t y = 0; y != dimensions.begin()[0]; ++y) {
 		// inputs have no input-connections
@@ -147,8 +138,8 @@ Network::Network(const std::initializer_list<size_t>& dimensions,
 	}
 }
 
-Network::Network(flt_t(*costDerivative)(flt_t, flt_t, flt_t)) :
-		m_nodes{}, m_costDerivative{costDerivative} {}
+Network::Network(CostFunction& costFunction) :
+		m_nodes{}, m_costFunction{costFunction} {}
 
 std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	feedforward(inputs);
@@ -176,9 +167,14 @@ void Network::stochasticGradientDescent(std::vector<Sample> trainingSamples,
 		const std::vector<Sample>& testSamples,
 		std::ostream& out,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
+	out << "Before " << std::setw(std::log10(epochs+1)) << "" <<
+		"  -  Accuracy: " << std::setw(std::log10(testSamples.size()) + 1) << evaluate(testSamples, compare) << " / " << testSamples.size() <<
+		"  -  Cost: " << cost(testSamples, regularizationParameter) << "\n";
 	for(size_t e = 0; e != epochs; ++e) {
 		stochasticGradientDescentEpoch(trainingSamples, miniBatchSize, eta, regularizationParameter);
-		out << "Epoch " << e+1 << ": " << evaluate(testSamples, compare) << " / " << testSamples.size() << "\n";
+		out << "Epoch " << std::setw(std::log10(epochs+1) + 1) << e+1 <<
+			"  -  Accuracy: " << std::setw(std::log10(testSamples.size()) + 1) << evaluate(testSamples, compare) << " / " << testSamples.size() <<
+			"  -  Cost: " << cost(testSamples, regularizationParameter) << "\n";
 	}
 }
 
@@ -192,26 +188,32 @@ size_t Network::evaluate(const std::vector<Sample>& testSamples,
 	return correct;
 }
 
-flt_t Network::cost(const std::vector<Sample>::const_iterator& samplesBegin, const std::vector<Sample>::const_iterator& samplesEnd) {
+flt_t Network::cost(const std::vector<Sample>& samples, flt_t regularizationParameter) {
 	/*
-		           1
-		cost  =  -----  *  accumulateForEverySample( || actualOutputs  -  expectedOutputs ||  ^  2 )
-               2 * n
-
-		                1
-		-->  cost  =  -----  *  accumulateForEverySample( performance( expectedOutputs ) )
-		              2 * n
+		          1	     |--                                                  regularizationParameter                                        --|
+		cost  =  ---  *  |  accumulateForEverySample( m_costFunction() )  +  ------------------------- * accumulateForEveryWeight( weight^2 )  |
+                n      |--                                                             2                                                   --|
 	*/
 
-	flt_t accumulatedPerformances = 0.0;
-	for(auto it = samplesBegin; it != samplesEnd; ++it) {
-		auto& [inputs, expectedOutputs] = *it;
+	flt_t cost0Acc = 0.0;
+	for(auto&& sample : samples) {
+		auto& [inputs, expectedOutputs] = sample;
 		feedforward(inputs);
 
-		accumulatedPerformances += currentCost(expectedOutputs);
+		// cost for this set of inputs
+		for(size_t y = 0; y != m_nodes.back().size(); ++y) {
+			cost0Acc += m_costFunction(m_nodes.back()[y].a, expectedOutputs[y]);
+		}
 	}
 
-	return accumulatedPerformances / std::distance(samplesBegin, samplesEnd);
+	flt_t weightCostAcc = 0.0;
+	for(size_t x = 1; x != m_nodes.size(); ++x) {
+		for(auto&& node : m_nodes[x])
+			for(auto&& weight : node.weights)
+				weightCostAcc += weight * weight;
+	}
+
+	return (cost0Acc + 0.5 * regularizationParameter * weightCostAcc) / samples.size();
 }
 
 std::istream& operator>>(std::istream& in, Network& network) {

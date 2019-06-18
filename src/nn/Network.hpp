@@ -8,6 +8,7 @@
 #include "utils.hpp"
 #include "Node.hpp"
 #include "Sample.hpp"
+#include "CostFunction.hpp"
 
 namespace nn {
 
@@ -22,14 +23,7 @@ class Network { public: // TODO
 	*/
 	std::vector<std::vector<Node>> m_nodes; // m_nodes[x][y] to access a node
 
-	/**
-	 * @brief calculates the derivative of cost function for the considered output node
-	 * @param z weighted sum + bias of the considered node's inputs
-	 * @param a actual activation of the considered output node
-	 * @param y expected activation of the considered output node
-	 * @return derivative of cost function
-	 */
-	flt_t(*m_costDerivative)(flt_t, flt_t, flt_t);
+	CostFunction& m_costFunction;
 
 	/**
 	 * @brief calculates the value of the output nodes based on the inputs
@@ -59,15 +53,6 @@ class Network { public: // TODO
 
 
 	/**
-	 * @brief the cost function for the current outputs, defined as
-	 *   `||outputs-expectedOutputs||^2 / 2`
-	 * @param expectedOutputs the expected output for every output node
-	 * @return the cost of the network
-	 */
-	flt_t currentCost(const std::vector<flt_t>& expectedOutputs);
-
-
-	/**
 	 * @brief applies the stochastic-gradient-descent learning algorithm
 	 *   (only for one epoch)
 	 * @param trainingSamples the samples to train on, containing the
@@ -88,21 +73,16 @@ public:
 	 * @brief constructs a fully-connected neural network
 	 *   All parameters' values are randomly initialized with normal distribution
 	 * @param dimensions the length of every layer of nodes
-	 * @param costDerivative cost derivative function that takes (z, a, y) as inputs
-	 *   and returns the derivative
-	 * @see m_costDerivative
+	 * @param costFunction @see nn::CostFunction class
 	 */
-	Network(const std::initializer_list<size_t>& dimensions,
-		flt_t(*costDerivative)(flt_t, flt_t, flt_t) = [](flt_t z, flt_t a, flt_t y) { return (a-y) * sigDeriv(z); });
+	Network(const std::initializer_list<size_t>& dimensions, CostFunction& costFunction);
 
 	/**
 	 * @brief constructs an empty neural network
-	 * @param costDerivative cost derivative function that takes (z, a, y) as inputs
-	 *   and returns the derivative
-	 * @see m_costDerivative
+	 * @param costFunction @see nn::CostFunction class
 	 * @see operator>>
 	 */
-	Network(flt_t(*costDerivative)(flt_t, flt_t, flt_t) = [](flt_t z, flt_t a, flt_t y) { return (a-y) * sigDeriv(z); });
+	Network(CostFunction& costFunction);
 
 	/**
 	 * @brief calculates the output of the network based on the provided inputs
@@ -112,14 +92,14 @@ public:
 	std::vector<flt_t> calculate(const std::vector<flt_t>& inputs);
 
 	/**
-	 * @brief the cost function, defined as
-	 *   `sumForEverySample( ||outputs-expectedOutputs||^2 / 2 ) / numberOfSamples`
-	 * @params [samplesBegin, samplesEnd] the samples containing the expected outputs
-	 *   for their inputs
-	 * @return the cost of the network
+	 * @brief the cost function over all samples and weights
+	 * @param samples the samples on which to calculate the cost
+	 * @param regularizationParameter how much the weights should be prevented from
+	 *   becoming big. Set to 0 if no regularization is wanted. This is typical of
+	 *   training but takes part in the cost.
+	 * @return cost
 	 */
-	flt_t cost(const std::vector<Sample>::const_iterator& samplesBegin,
-		const std::vector<Sample>::const_iterator& samplesEnd);
+	flt_t cost(const std::vector<Sample>& samples, flt_t regularizationParameter);
 
 	/**
 	 * @brief applies the stochastic-gradient-descent learning algorithm
