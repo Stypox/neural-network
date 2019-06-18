@@ -69,7 +69,7 @@ void Network::backpropagation(const Sample& sample) {
 
 	// backpropagation of output layer
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		m_nodes.back()[y].error = costDerivative(m_nodes.back()[y].a, sample.expectedOutputs[y]) * sigDeriv(m_nodes.back()[y].z);
+		m_nodes.back()[y].error = costDerivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y]);
 		// ^ TODO consider putting sample.expectedOutputs.at(y) or checking size
 
 		for(size_t yFrom = 0; yFrom != m_nodes.end()[-2].size(); ++yFrom) {
@@ -93,8 +93,8 @@ void Network::backpropagation(const Sample& sample) {
 	}
 }
 
-flt_t Network::costDerivative(flt_t actualOutput, flt_t expectedOutput) {
-	return actualOutput - expectedOutput;
+flt_t Network::costDerivative(flt_t z, flt_t a, flt_t y) {
+	return (a - y) * sigDeriv(z);
 }
 
 flt_t Network::currentCost(const std::vector<flt_t>& expectedOutputs) {

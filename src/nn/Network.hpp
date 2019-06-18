@@ -56,11 +56,12 @@ class Network { public: // TODO
 
 	/**
 	 * @brief calculates the derivative of cost function for the considered output node
-	 * @param actualOutput actual activation of the considered output node
-	 * @param expectedOutput expected activation of the considered output node
+	 * @param z weighted sum + bias of the considered node's inputs
+	 * @param a actual activation of the considered output node
+	 * @param y expected activation of the considered output node
 	 * @return derivative of cost function
 	 */
-	flt_t costDerivative(flt_t actualOutput, flt_t expectedOutput);
+	flt_t costDerivative(flt_t z, flt_t a, flt_t y);
 
 
 	/**
