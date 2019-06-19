@@ -21,7 +21,7 @@ void Network::feedforward(const std::vector<flt_t>& inputs) {
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
 				m_nodes[x][y].z += m_nodes[x-1][yFrom].a * m_nodes[x][y].weights[yFrom];
 			}
-			m_nodes[x][y].a = sig(m_nodes[x][y].z);
+			m_nodes[x][y].a = m_activationFunction(m_nodes[x][y].z);
 		}
 	}
 }
@@ -89,7 +89,7 @@ void Network::backpropagation(const Sample& sample) {
 
 	// backpropagation of output layer
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		m_nodes.back()[y].error = m_costFunction.derivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y]);
+		m_nodes.back()[y].error = m_costFunction.derivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y], m_activationFunction);
 		// ^ TODO consider putting sample.expectedOutputs.at(y) or checking size
 
 		for(size_t yFrom = 0; yFrom != m_nodes.end()[-2].size(); ++yFrom) {
@@ -100,7 +100,7 @@ void Network::backpropagation(const Sample& sample) {
 	// backpropagation
 	for(size_t x = m_nodes.size()-2; x != 0; --x) {
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
-			flt_t sd = sigDeriv(m_nodes[x][y].z);
+			flt_t sd = m_activationFunction.derivative(m_nodes[x][y].z);
 
 			m_nodes[x][y].error = 0;
 			for(size_t yTo = 0; yTo != m_nodes[x+1].size(); ++yTo) {
@@ -141,8 +141,11 @@ void Network::momentumSGDEpoch(std::vector<Sample>& trainingSamples,
 }
 
 
-Network::Network(const std::initializer_list<size_t>& dimensions, CostFunction& costFunction) :
-		m_nodes{}, m_costFunction{costFunction} {
+Network::Network(const std::initializer_list<size_t>& dimensions,
+		ActivationFunction& activationFunction,
+		CostFunction& costFunction) :
+		m_nodes{}, m_activationFunction{activationFunction},
+		m_costFunction{costFunction} {
 	m_nodes.push_back({});
 	for(size_t y = 0; y != dimensions.begin()[0]; ++y) {
 		// inputs have no input-connections
@@ -163,8 +166,9 @@ Network::Network(const std::initializer_list<size_t>& dimensions, CostFunction& 
 	}
 }
 
-Network::Network(CostFunction& costFunction) :
-		m_nodes{}, m_costFunction{costFunction} {}
+Network::Network(ActivationFunction& activationFunction, CostFunction& costFunction) :
+		m_nodes{}, m_activationFunction{activationFunction},
+		m_costFunction{costFunction} {}
 
 std::vector<flt_t> Network::calculate(const std::vector<flt_t>& inputs) {
 	feedforward(inputs);

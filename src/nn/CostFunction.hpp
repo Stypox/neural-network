@@ -2,7 +2,7 @@
 #define _NN_COSTFUNCTION_HPP_
 
 #include "utils.hpp"
-#include <cmath>
+#include "ActivationFunction.hpp"
 
 namespace nn {
 
@@ -11,11 +11,12 @@ namespace nn {
  * @param z weighted sum + bias of the considered output node's inputs
  * @param a actual activation of the considered output node
  * @param y expected activation of the considered output node
+ * @param f the activation function of the considered output node
  */
 class CostFunction {
 public:
 	virtual flt_t operator()(const flt_t a, const flt_t y) const = 0;
-	virtual flt_t derivative(const flt_t z, const flt_t a, const flt_t y) const = 0;
+	virtual flt_t derivative(const flt_t z, const flt_t a, const flt_t y, const ActivationFunction& f) const = 0;
 };
 
 class QuadraticCost : public CostFunction {
@@ -23,8 +24,8 @@ public:
 	flt_t operator()(const flt_t a, const flt_t y) const final {
 		return 0.5 * (a-y)*(a-y);
 	}
-	flt_t derivative(const flt_t z, const flt_t a, const flt_t y) const final {
-		return (a-y) * sigDeriv(z);
+	flt_t derivative(const flt_t z, const flt_t a, const flt_t y, const ActivationFunction& f) const final {
+		return (a-y) * f.derivative(z);
 	}
 };
 inline QuadraticCost quadraticCost;
@@ -38,7 +39,7 @@ public:
 	flt_t operator()(const flt_t a, const flt_t y) const final {
 		return - y*customLog(a) - (1-y)*customLog(1-a);
 	}
-	flt_t derivative(const flt_t, const flt_t a, const flt_t y) const final {
+	flt_t derivative(const flt_t, const flt_t a, const flt_t y, const ActivationFunction&) const final {
 		return a-y;
 	}
 };

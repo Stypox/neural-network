@@ -23,6 +23,7 @@ class Network { public: // TODO
 	*/
 	std::vector<std::vector<Node>> m_nodes; // m_nodes[x][y] to access a node
 
+	ActivationFunction& m_activationFunction;
 	CostFunction& m_costFunction;
 
 	/**
@@ -79,16 +80,20 @@ public:
 	 * @brief constructs a fully-connected neural network
 	 *   All parameters' values are randomly initialized with normal distribution
 	 * @param dimensions the length of every layer of nodes
+	 * @param activationFunction @see nn::ActivationFunction class
 	 * @param costFunction @see nn::CostFunction class
 	 */
-	Network(const std::initializer_list<size_t>& dimensions, CostFunction& costFunction);
+	Network(const std::initializer_list<size_t>& dimensions,
+		ActivationFunction& activationFunction,
+		CostFunction& costFunction);
 
 	/**
 	 * @brief constructs an empty neural network
+	 * @param activationFunction @see nn::ActivationFunction class
 	 * @param costFunction @see nn::CostFunction class
 	 * @see operator>>
 	 */
-	Network(CostFunction& costFunction);
+	Network(ActivationFunction& activationFunction, CostFunction& costFunction);
 
 	/**
 	 * @brief calculates the output of the network based on the provided inputs
