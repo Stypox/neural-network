@@ -25,7 +25,7 @@ struct Node {
 	flt_t biasVelocity;
 	std::vector<flt_t> weightsVelocity;
 
-	Node(size_t inputCount);
+	Node(const size_t inputCount);
 
 	friend std::istream& operator>>(std::istream& in, Node& node);
 	friend std::ostream& operator<<(std::ostream& out, const Node& node);

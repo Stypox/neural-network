@@ -3,7 +3,7 @@
 
 namespace nn {
 
-Node::Node(size_t inputCount) :
+Node::Node(const size_t inputCount) :
 		bias{}, weights(inputCount),
 		z{}, a{},
 		error{}, weightsNabla(inputCount),

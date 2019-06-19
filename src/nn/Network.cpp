@@ -215,7 +215,7 @@ size_t Network::evaluate(const std::vector<Sample>& testSamples,
 	return correct;
 }
 
-flt_t Network::cost(const std::vector<Sample>& samples, flt_t regularizationParameter) {
+flt_t Network::cost(const std::vector<Sample>& samples, const flt_t regularizationParameter) {
 	/*
 		          1	     |--                                                  regularizationParameter                                        --|
 		cost  =  ---  *  |  accumulateForEverySample( m_costFunction() )  +  ------------------------- * accumulateForEveryWeight( weight^2 )  |

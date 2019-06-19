@@ -14,31 +14,31 @@ namespace nn {
  */
 class CostFunction {
 public:
-	virtual flt_t operator()(flt_t a, flt_t y) const = 0;
-	virtual flt_t derivative(flt_t z, flt_t a, flt_t y) const = 0;
+	virtual flt_t operator()(const flt_t a, const flt_t y) const = 0;
+	virtual flt_t derivative(const flt_t z, const flt_t a, const flt_t y) const = 0;
 };
 
 class QuadraticCost : public CostFunction {
 public:
-	flt_t operator()(flt_t a, flt_t y) const final {
+	flt_t operator()(const flt_t a, const flt_t y) const final {
 		return 0.5 * (a-y)*(a-y);
 	}
-	flt_t derivative(flt_t z, flt_t a, flt_t y) const final {
+	flt_t derivative(const flt_t z, const flt_t a, const flt_t y) const final {
 		return (a-y) * sigDeriv(z);
 	}
 };
 inline QuadraticCost quadraticCost;
 
 class CrossEntropyCost : public CostFunction {
-	constexpr flt_t customLog(flt_t a) const { // prevent log(0)
+	constexpr flt_t customLog(const flt_t a) const { // prevent log(0)
 		if (a==0) return std::numeric_limits<flt_t>::min();
 		return std::log(a);
 	}
 public:
-	flt_t operator()(flt_t a, flt_t y) const final {
+	flt_t operator()(const flt_t a, const flt_t y) const final {
 		return - y*customLog(a) - (1-y)*customLog(1-a);
 	}
-	flt_t derivative(flt_t, flt_t a, flt_t y) const final {
+	flt_t derivative(const flt_t, const flt_t a, const flt_t y) const final {
 		return a-y;
 	}
 };

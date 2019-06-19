@@ -105,7 +105,7 @@ public:
 	 *   training but takes part in the cost.
 	 * @return cost
 	 */
-	flt_t cost(const std::vector<Sample>& samples, flt_t regularizationParameter);
+	flt_t cost(const std::vector<Sample>& samples, const flt_t regularizationParameter);
 
 	/**
 	 * @brief applies the stochastic-gradient-descent learning algorithm,
