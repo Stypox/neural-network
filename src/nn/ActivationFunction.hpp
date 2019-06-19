@@ -28,22 +28,22 @@ inline Sigmoid sigmoid;
 
 class FastSigmoid : public ActivationFunction {
 	flt_t operator()(const flt_t z) const final {
-		return z / (1.0 + std::abs(z));
+		return 0.5*z / (1.0 + std::abs(z)) + 0.5;
 	}
 	flt_t derivative(const flt_t z) const final {
 		const flt_t denom = std::abs(z) + 1;
-		return 1.0 / (denom * denom);
+		return 0.5 / (denom * denom);
 	}
 };
 inline FastSigmoid fastSigmoid;
 
 class Tanh : public ActivationFunction {
 	flt_t operator()(const flt_t z) const final {
-		return std::tanh(z);
+		return 0.5*std::tanh(z) + 0.5;
 	}
 	flt_t derivative(const flt_t z) const final {
 		const flt_t res = 1.0 / std::cosh(z);
-		return res * res;
+		return res * res / 2.0;
 	}
 };
 inline Tanh tanh;
