@@ -48,6 +48,30 @@ class Tanh : public ActivationFunction {
 };
 inline Tanh tanh;
 
+// This does not work with cost functions that require the output to be positive
+class Linear : public ActivationFunction {
+	flt_t operator()(const flt_t z) const final {
+		return z;
+	}
+	flt_t derivative(const flt_t) const final {
+		return 1.0;
+	}
+};
+inline Linear linear;
+
+// This does not work with cost functions that require the output to be positive
+class RectifiedLinear : public ActivationFunction {
+	flt_t operator()(const flt_t z) const final {
+		if (z < 0) return 0.0;
+		else return z;
+	}
+	flt_t derivative(const flt_t z) const final {
+		if (z < 0) return 0.0;
+		else return 1.0;
+	}
+};
+inline RectifiedLinear rectifiedLinear;
+
 } // namespace nn
 
 #endif // _NN_ACTIVATIONFUNCTION_HPP_
