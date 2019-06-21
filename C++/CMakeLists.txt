@@ -8,7 +8,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 project(neural-network)
@@ -16,6 +16,3 @@ project(neural-network)
 #Add the files
 file(GLOB_RECURSE SOURCES src/*.cpp)
 add_executable(executable ${SOURCES})
-
-#Copy resources
-#file(COPY ${CMAKE_SOURCE_DIR}/Res DESTINATION ${CMAKE_BINARY_DIR})
