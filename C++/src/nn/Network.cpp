@@ -63,7 +63,7 @@ void Network::momentumSGDMiniBatch(const std::vector<Sample>::const_iterator& sa
 				momentumCoefficient * m_nodes[x][y].biasVelocity -
 				etaScaled * m_nodes[x][y].accBiasNabla;
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				m_nodes[x][y].weightsVelocity[yFrom] = 
+				m_nodes[x][y].weightsVelocity[yFrom] =
 					momentumCoefficient * m_nodes[x][y].weightsVelocity[yFrom] -
 					etaScaled * m_nodes[x][y].accWeightsNabla[yFrom];
 			}
@@ -75,7 +75,7 @@ void Network::momentumSGDMiniBatch(const std::vector<Sample>::const_iterator& sa
 		for(size_t y = 0; y != m_nodes[x].size(); ++y) {
 			m_nodes[x][y].bias += m_nodes[x][y].biasVelocity;
 			for(size_t yFrom = 0; yFrom != m_nodes[x-1].size(); ++yFrom) {
-				m_nodes[x][y].weights[yFrom] = 
+				m_nodes[x][y].weights[yFrom] =
 					weightDecayFactor * m_nodes[x][y].weights[yFrom] +
 					m_nodes[x][y].weightsVelocity[yFrom];
 			}
@@ -85,12 +85,12 @@ void Network::momentumSGDMiniBatch(const std::vector<Sample>::const_iterator& sa
 
 void Network::backpropagation(const Sample& sample) {
 	// feedforward
-	feedforward(sample.inputs);
+	feedforward(sample.getInputs());
 
 	// backpropagation of output layer
 	for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-		m_nodes.back()[y].error = m_costFunction.derivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.expectedOutputs[y], m_activationFunction);
-		// ^ TODO consider putting sample.expectedOutputs.at(y) or checking size
+		m_nodes.back()[y].error = m_costFunction.derivative(m_nodes.back()[y].z, m_nodes.back()[y].a, sample.getExpectedOutputs()[y], m_activationFunction);
+		// ^ TODO consider putting sample.getExpectedOutputs().at(y) or checking size
 
 		for(size_t yFrom = 0; yFrom != m_nodes.end()[-2].size(); ++yFrom) {
 			m_nodes.back()[y].weightsNabla[yFrom] = m_nodes.back()[y].error * m_nodes.end()[-2][yFrom].a;
@@ -213,8 +213,8 @@ size_t Network::evaluate(const std::vector<Sample>& testSamples,
 		std::function<bool(const std::vector<flt_t>&, const std::vector<flt_t>&)> compare) {
 	size_t correct = 0;
 	for(auto&& sample : testSamples) {
-		std::vector<flt_t> actualOutputs = calculate(sample.inputs);
-		correct += compare(sample.expectedOutputs, actualOutputs);
+		std::vector<flt_t> actualOutputs = calculate(sample.getInputs());
+		correct += compare(sample.getExpectedOutputs(), actualOutputs);
 	}
 	return correct;
 }
@@ -223,17 +223,16 @@ flt_t Network::cost(const std::vector<Sample>& samples, const flt_t regularizati
 	/*
 		          1	     |--                                                  regularizationParameter                                        --|
 		cost  =  ---  *  |  accumulateForEverySample( m_costFunction() )  +  ------------------------- * accumulateForEveryWeight( weight^2 )  |
-                n      |--                                                             2                                                   --|
+                  n      |--                                                             2                                                   --|
 	*/
 
 	flt_t cost0Acc = 0.0;
 	for(auto&& sample : samples) {
-		auto& [inputs, expectedOutputs] = sample;
-		feedforward(inputs);
+		feedforward(sample.getInputs());
 
 		// cost for this set of inputs
 		for(size_t y = 0; y != m_nodes.back().size(); ++y) {
-			cost0Acc += m_costFunction(m_nodes.back()[y].a, expectedOutputs[y]);
+			cost0Acc += m_costFunction(m_nodes.back()[y].a, sample.getExpectedOutputs()[y]);
 		}
 	}
 
@@ -258,7 +257,7 @@ std::istream& operator>>(std::istream& in, Network& network) {
 	for(size_t y = 0; y != ySize; ++y) {
 		// inputs have no input-connections
 		network.m_nodes[0].push_back(Node{0});
-	}	
+	}
 
 	for(size_t x = 1; x != xSize; ++x) {
 		in >> ySize;
