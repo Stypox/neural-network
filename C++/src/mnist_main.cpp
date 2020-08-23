@@ -33,11 +33,10 @@ std::vector<Sample> readImages(std::string imagesFilename, std::string labelsFil
 	uint32_t rows = getUint32(imagesFile);
 	uint32_t columns = getUint32(imagesFile);
 
-	std::vector<Sample> images;
+	std::vector<std::pair<std::vector<flt_t>, uint8_t>> images(imageCount, {std::vector<flt_t>(rows * columns), 0});
 	for(uint32_t i = 0; i != imageCount; ++i) {
-		images.push_back(Sample{});
 		for(uint32_t j = 0; j != rows * columns; ++j) {
-			images.back().inputs.push_back((flt_t)imagesFile.get() / (flt_t)256.0);
+			images.back().first[j] = (flt_t)imagesFile.get() / (flt_t)256.0;
 		}
 	}
 
@@ -51,16 +50,19 @@ std::vector<Sample> readImages(std::string imagesFilename, std::string labelsFil
 			throw std::runtime_error{"Files have different image counts: " + std::to_string(imageCount) + " and " + std::to_string(otherImageCount)};
 
 		for(uint32_t i = 0; i != imageCount; ++i) {
-			uint8_t number = labelsFile.get();
-			images[i].expectedOutputs.resize(10, 0.0);
-			images[i].expectedOutputs[number] = 1.0;
+			images[i].second = labelsFile.get();
 		}
 	}
 
-	return images;
+	std::vector<Sample> result;
+	result.reserve(imageCount);
+	for(auto&& [inputs, expectedClass] : images) {
+		result.push_back({inputs, expectedClass, 10});
+	}
+	return result;
 }
 
-int main() {
+int mnist_main() {
 	//std::cout << std::fixed << std::setprecision(1);
 
 	const auto trainImages = readImages("train-images-idx3-ubyte", "train-labels-idx1-ubyte");
@@ -80,18 +82,18 @@ int main() {
 	net.        SGD(trainImages, 25, 15, 0.07, 5.0,       testImages, std::cout, compare);
 	net.        SGD(trainImages, 25, 20, 0.06, 5.0,       testImages, std::cout, compare);
 
-	// for(auto&& image : testImages) {
-	// 	auto eo = image.expectedOutputs;
-	// 	auto ao = net.calculate(image.inputs);
+	for(auto&& image : testImages) {
+		auto eo = image.getExpectedOutputs();
+		auto ao = net.calculate(image.getInputs());
 
-	// 	size_t ei = std::distance(eo.begin(), std::max_element(eo.begin(), eo.end()));
-	// 	size_t ai = std::distance(ao.begin(), std::max_element(ao.begin(), ao.end()));
+		size_t ei = std::distance(eo.begin(), std::max_element(eo.begin(), eo.end()));
+		size_t ai = std::distance(ao.begin(), std::max_element(ao.begin(), ao.end()));
 
-	// 	if (ei != ai) {
-	// 		printImage(std::cout, image);
-	// 		std::cout << "-------- " << ai << " -------- <<-- WRONG\n\n";
-	// 	}
-	// }
+		if (ei != ai) {
+			printImage(std::cout, image);
+			std::cout << "-------- " << ai << " -------- <<-- WRONG\n\n";
+		}
+	}
 
 	std::ofstream fout{"network.txt"};
 	fout << net;
