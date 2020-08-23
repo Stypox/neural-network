@@ -6,11 +6,11 @@
 
 // TODO remove this file, useful only for debugging
 
-inline void deb() {std::cout<<"\n";}
+inline void deb() {std::cout<<"\n"<<std::flush;}
 template<class T, class... Ts> void deb(T t, Ts... args) {
-	if constexpr(std::is_same_v<T,std::vector<nn::flt_t>>) {
+	if constexpr(std::is_same_v<T,std::vector<nn::flt_t>> || std::is_same_v<T,std::vector<std::string>>) {
 		for(auto&& e : t) {
-			std::cout << e << " ";
+			std::cout<<e<<" ";
 		}
 	}
 	else {
@@ -23,7 +23,7 @@ inline void printImage(std::ostream& out, const std::vector<nn::flt_t>& inputs, 
 	int line = 0;
 	for(auto&& pixel : inputs) {
 		out << (pixel<0.5 ? "  " : "@@");
-		
+
 		++line;
 		if(line == (int)std::sqrt(inputs.size())) {
 			out << "|\n";
@@ -35,6 +35,6 @@ inline void printImage(std::ostream& out, const std::vector<nn::flt_t>& inputs, 
 }
 
 inline void printImage(std::ostream& out, const nn::Sample& image) {
-	printImage(out, image.inputs, image.expectedOutputs);
+	printImage(out, image.getInputs(), image.getExpectedOutputs());
 }
 #endif
